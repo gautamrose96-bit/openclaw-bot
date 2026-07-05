@@ -1,23 +1,27 @@
+# Koyeb - Truly free forever, no credit card
+# Deploy: https://app.koyeb.com/deploy?name=openclaw-bot&type=git&repository=github.com/gautamrose96-bit/openclaw-bot&branch=main&builder=dockerfile&instance_type=free
 name: openclaw-bot
 type: worker
-definition:
-  name: openclaw-bot
-  type: worker
-  instance_types:
-    - type: free
-  regions:
-    - was
-  scaling:
-    min: 1
-    max: 1
-  env:
-    - key: TELEGRAM_BOT_TOKEN
-      value: ""
-    - key: GROQ_API_KEY
-      value: ""
-    - key: HEALTH_PORT
-      value: "8080"
-  build:
-    type: dockerfile
-    dockerfile:
-      dockerfile: Dockerfile
+instance_types:
+  - type: free
+regions:
+  - was
+scaling:
+  min: 1
+  max: 1
+env:
+  - key: TELEGRAM_BOT_TOKEN
+    value: ""
+  - key: GROQ_API_KEY
+    value: ""
+  - key: HEALTH_PORT
+    value: "8080"
+build:
+  type: dockerfile
+  dockerfile:
+    dockerfile: Dockerfile
+health_checks:
+  - type: http
+    port: 8080
+    path: /health
+    interval: 30

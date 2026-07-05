@@ -1,33 +1,45 @@
-name: Health Check & Auto-Heal
+name: Health Check & Auto-Heal (All Platforms)
 
 on:
   schedule:
-    - cron: "*/5 * * * *"  # Every 5 minutes
+    - cron: "*/5 * * * *"
   workflow_dispatch:
 
 jobs:
-  check-health:
+  health-check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check VPS Health
-        id: vps
-        if: env.VPS_HEALTH_URL != ''
+      - name: Check all platforms
         run: |
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$VPS_HEALTH_URL" --max-time 10 || echo "000")
-          echo "status=$STATUS" >> $GITHUB_OUTPUT
-          if [ "$STATUS" = "200" ]; then
-            echo "VPS: Healthy"
-          else
-            echo "VPS: DOWN (HTTP $STATUS)"
-          fi
-        env:
-          VPS_HEALTH_URL: ${{ secrets.VPS_HEALTH_URL }}
-        continue-on-error: true
+          check_health() {
+            local name="$1" url="$2"
+            if [ -z "$url" ]; then
+              echo "$name: SKIPPED (no URL configured)"
+              return
+            fi
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$url" --max-time 10 2>/dev/null || echo "000")
+            if [ "$STATUS" = "200" ]; then
+              echo "$name: HEALTHY"
+            else
+              echo "$name: DOWN (HTTP $STATUS)"
+              echo "${name}_DOWN=true" >> $GITHUB_ENV
+            fi
+          }
+
+          echo "=== OpenClaw Bot Health Check ==="
+          echo ""
+          check_health "VPS" "${{ secrets.VPS_HEALTH_URL }}"
+          check_health "Koyeb" "${{ secrets.KOYEB_HEALTH_URL }}"
+          check_health "Railway" "${{ secrets.RAILWAY_HEALTH_URL }}"
+          check_health "Render" "${{ secrets.RENDER_HEALTH_URL }}"
+          check_health "Fly" "${{ secrets.FLY_HEALTH_URL }}"
+          echo ""
+          echo "=== Check Complete ==="
 
       - name: Auto-restart VPS if down
-        if: steps.vps.outputs.status != '200' && env.VPS_HOST != ''
+        if: env.VPS_DOWN == 'true' && secrets.VPS_HOST != ''
         uses: appleboy/ssh-action@v1.2.2
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -36,33 +48,17 @@ jobs:
           script: |
             sudo systemctl restart openclaw-bot
             sleep 5
-            systemctl is-active --quiet openclaw-bot && echo "Restarted OK" || echo "Still down"
-        env:
-          VPS_HOST: ${{ secrets.VPS_HOST }}
+            systemctl is-active --quiet openclaw-bot && echo "VPS Restarted OK" || echo "VPS Still down"
         continue-on-error: true
 
-      - name: Check Railway Health
-        if: env.RAILWAY_HEALTH_URL != ''
+      - name: Auto-restart Koyeb if down
+        if: env.Koyeb_DOWN == 'true' && secrets.KOYEB_API_TOKEN != ''
         run: |
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$RAILWAY_HEALTH_URL" --max-time 10 || echo "000")
-          if [ "$STATUS" = "200" ]; then
-            echo "Railway: Healthy"
-          else
-            echo "Railway: DOWN (HTTP $STATUS)"
-          fi
-        env:
-          RAILWAY_HEALTH_URL: ${{ secrets.RAILWAY_HEALTH_URL }}
+          curl -s -X POST "https://app.koyeb.com/v1/services/openclaw-bot/redeploy" \
+            -H "Authorization: Bearer ${{ secrets.KOYEB_API_TOKEN }}" || true
         continue-on-error: true
 
-      - name: Check Fly.io Health
-        if: env.FLY_HEALTH_URL != ''
-        run: |
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$FLY_HEALTH_URL" --max-time 10 || echo "000")
-          if [ "$STATUS" = "200" ]; then
-            echo "Fly.io: Healthy"
-          else
-            echo "Fly.io: DOWN (HTTP $STATUS)"
-          fi
-        env:
-          FLY_HEALTH_URL: ${{ secrets.FLY_HEALTH_URL }}
+      - name: Auto-restart Render if down
+        if: env.Render_DOWN == 'true' && secrets.RENDER_DEPLOY_HOOK != ''
+        run: curl -s -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}" || true
         continue-on-error: true

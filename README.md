@@ -1,40 +1,52 @@
 # OpenClaw Bot
 
-AI Telegram bot with **6 free AI providers**, **15+ models**, and **5 free hosting platforms**. Runs **24/7 forever at $0 cost**.
+AI Telegram bot with **6 free AI providers**, **15+ models**, and **10 free hosting platforms**. Runs **24/7 forever at $0 cost**. No credit card needed.
 
 ## One-Click Deploy (Login with GitHub)
 
-| Platform | Deploy | Free Tier |
-|----------|--------|-----------|
-| **Railway** | [![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/template?template=https://github.com/gautamrose96-bit/openclaw-bot) | $5/month free credit |
-| **Render** | [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/gautamrose96-bit/openclaw-bot) | Free worker |
-| **Koyeb** | [![Deploy to Koyeb](https://www.koyeb.com/static/images/deploy/button.svg)](https://app.koyeb.com/deploy?name=openclaw-bot&type=git&repository=github.com/gautamrose96-bit/openclaw-bot&branch=main&builder=dockerfile&instance_type=free&env[TELEGRAM_BOT_TOKEN]=&env[GROQ_API_KEY]=) | Free nano instance 24/7 |
+| Platform | Deploy | Free Tier | Credit Card |
+|----------|--------|-----------|-------------|
+| **Koyeb** | [![Deploy to Koyeb](https://www.koyeb.com/static/images/deploy/button.svg)](https://app.koyeb.com/deploy?name=openclaw-bot&type=git&repository=github.com/gautamrose96-bit/openclaw-bot&branch=main&builder=dockerfile&instance_type=free&env[TELEGRAM_BOT_TOKEN]=&env[GROQ_API_KEY]=) | Free nano 24/7 | No |
+| **Railway** | [![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/template?template=https://github.com/gautamrose96-bit/openclaw-bot) | $5/month free | No |
+| **Render** | [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/gautamrose96-bit/openclaw-bot) | Free worker | No |
+| **Back4App** | [Deploy](https://www.back4app.com/docs-containers/deploy-from-github) | Free container | No |
+| **Zeabur** | [Deploy](https://zeabur.com/templates) | Free tier | No |
+| **HuggingFace** | [Deploy](https://huggingface.co/new-space) | Free Space | No |
+| **Glitch** | [Import](https://glitch.com/edit/#!/import/github/gautamrose96-bit/openclaw-bot) | Free forever | No |
+| **Fly.io** | `flyctl launch` | 3 free VMs | No |
+| **Oracle Cloud** | [setup-oracle-vps.sh](#1-oracle-cloud-always-free-recommended) | Free forever | Yes (verify only) |
+| **Google Cloud** | [setup-gcp.sh](#2-google-cloud-free-tier) | Free e2-micro | Yes (verify only) |
 
-> Click any button above > Login with GitHub > Add your API keys > Done! Bot runs 24/7 free.
+> **Quickest path**: Click the **Koyeb** button > Login with GitHub > Paste your API keys > Click Deploy. Done in 2 minutes.
 
 ```
-User  -->  Telegram  -->  OpenClaw Bot  -->  Groq (primary)
-                               |              |-- Gemini (fallback 1)
-                               |              |-- Mistral (fallback 2)
-                               |              |-- Cohere (fallback 3)
-                               |              |-- HuggingFace (fallback 4)
-                               |              |-- OpenRouter (fallback 5)
-                               |
-                          Health Server  <--  UptimeRobot / GitHub Actions
-                               |
-          Oracle Cloud (primary)  |  GCP (backup)  |  Railway  |  Render  |  Fly.io
+Architecture:
+
+User --> Telegram --> OpenClaw Bot --> Groq (primary)
+                          |            |-- Gemini (fallback)
+                          |            |-- Mistral (fallback)
+                          |            |-- Cohere (fallback)
+                          |            |-- HuggingFace (fallback)
+                          |            |-- OpenRouter (fallback)
+                          |
+                     Health /ping <-- Self-ping + UptimeRobot + GitHub Actions
+                          |
+     Koyeb | Railway | Render | Glitch | Back4App | Zeabur | HF Spaces
+     Oracle Cloud | Google Cloud | Fly.io
+     (if one dies, deploy on another - bot never goes offline)
 ```
 
 ## Features
 
 - **6 AI Providers** with automatic fallback - never run out of tokens
-- **15+ Free Models** - LLaMA, Gemini, Mixtral, Gemma, Command R, Mistral
-- **5 Free Hosting Platforms** - Oracle, GCP, Railway, Render, Fly.io
-- **Self-healing** - auto-restart, watchdog, health checks
-- **Auto-deploy** - push to GitHub and all platforms update
-- **Zero cost forever** - uses only free tiers
+- **15+ Free Models** - LLaMA 3.3, Gemini, Mixtral, Gemma, Command R, Mistral
+- **10 Free Hosting Platforms** - all no-credit-card (except Oracle/GCP verify)
+- **Self-healing** - auto-restart, watchdog, health checks every 5 min
+- **Auto-deploy** - push to GitHub, all platforms update
+- **Keep-alive** - self-ping, UptimeRobot, GitHub Actions
+- **Zero cost forever**
 
-## Quick Start (2 minutes)
+## Quick Start (Local)
 
 ```bash
 git clone https://github.com/gautamrose96-bit/openclaw-bot.git
@@ -42,7 +54,7 @@ cd openclaw-bot
 python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
-nano .env  # Add TELEGRAM_BOT_TOKEN and at least one AI provider key
+nano .env  # Add TELEGRAM_BOT_TOKEN + at least one AI provider key
 python3 bot.py
 ```
 
@@ -58,9 +70,9 @@ python3 bot.py
 | OpenRouter | [openrouter.ai/keys](https://openrouter.ai/keys) | Free models |
 | Telegram Bot | [@BotFather](https://t.me/BotFather) | Unlimited |
 
-**Tip**: Add ALL providers for maximum reliability. If one hits rate limits, the bot automatically switches to the next.
+**Add ALL providers** for maximum reliability. If one hits rate limits, the bot automatically switches to the next.
 
-## Available Models
+## Available Models (15+)
 
 | Model | Command | Provider |
 |-------|---------|----------|
@@ -88,60 +100,72 @@ python3 bot.py
 | `/model <name>` | Switch AI model |
 | `/models` | List all available models |
 | `/status` | Bot health, uptime, provider status |
-| `/tokens` | Provider usage stats and limits |
+| `/tokens` | Provider usage stats |
 | `/reset` | Clear conversation history |
 | `/restart` | Restart the bot |
 
-## Free 24/7 Hosting (5 Platforms)
+## Free 24/7 Hosting (All Platforms)
 
-### 1. Oracle Cloud Always Free (Recommended - Primary)
+### No Credit Card Platforms
 
-**Free forever**: ARM Ampere A1 (4 OCPU, 24 GB RAM) or AMD E2.1.Micro
+#### Koyeb (Recommended - Easiest)
+Free nano instance, runs 24/7, no credit card, login with GitHub.
 
-```bash
-# One-command setup:
-curl -sSL https://raw.githubusercontent.com/gautamrose96-bit/openclaw-bot/main/setup-oracle-vps.sh | bash
-sudo nano /opt/openclaw-bot/.env
-sudo systemctl start openclaw-bot
-```
+[![Deploy to Koyeb](https://www.koyeb.com/static/images/deploy/button.svg)](https://app.koyeb.com/deploy?name=openclaw-bot&type=git&repository=github.com/gautamrose96-bit/openclaw-bot&branch=main&builder=dockerfile&instance_type=free&env[TELEGRAM_BOT_TOKEN]=&env[GROQ_API_KEY]=)
 
-Sign up: [cloud.oracle.com](https://cloud.oracle.com/) (credit card for verification, never charged)
+1. Click button > Login with GitHub
+2. Fill `TELEGRAM_BOT_TOKEN` and `GROQ_API_KEY`
+3. Click Deploy. Done!
 
-Includes: systemd service, watchdog cron (5 min), daily auto-update, swap, security updates.
+#### Railway
+$5/month free credit (enough for 24/7 bot), GitHub login.
 
-### 2. Google Cloud Free Tier (Backup)
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/template?template=https://github.com/gautamrose96-bit/openclaw-bot)
 
-**Free forever**: 1x e2-micro instance in us-central1/us-west1/us-east1
+1. Click button > Login with GitHub
+2. Add environment variables
+3. Deploy
 
-```bash
-chmod +x setup-gcp.sh && ./setup-gcp.sh
-gcloud compute ssh openclaw-bot --zone=us-central1-a
-sudo nano /opt/openclaw-bot/.env
-sudo systemctl enable --now openclaw-bot
-```
+#### Render
+Free worker service, auto-deploy from GitHub.
 
-Sign up: [cloud.google.com](https://cloud.google.com/)
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/gautamrose96-bit/openclaw-bot)
 
-### 3. Railway.app (Backup)
+1. Click button > Login with GitHub
+2. Add env vars > Deploy
 
-**Free**: $5 monthly credit (enough for a bot running 24/7)
+#### Glitch
+Free forever, import from GitHub.
 
-1. Go to [railway.app](https://railway.app/) and connect your GitHub repo
-2. Add env vars: `TELEGRAM_BOT_TOKEN`, `GROQ_API_KEY`
-3. Auto-deploys on every push
+1. Go to [glitch.com/edit/#!/import/github/gautamrose96-bit/openclaw-bot](https://glitch.com/edit/#!/import/github/gautamrose96-bit/openclaw-bot)
+2. Click `.env` in the editor
+3. Add your keys
+4. Bot starts automatically
 
-### 4. Render.com (Backup)
+#### Back4App Containers
+Free Docker containers, deploy from GitHub.
 
-**Free**: Worker service
+1. Go to [back4app.com](https://www.back4app.com/) > Sign up with GitHub
+2. Create new Container > Connect GitHub repo `openclaw-bot`
+3. Add env vars > Deploy
 
-1. Go to [render.com](https://render.com/) and create a "Worker" service
-2. Connect your GitHub repo
-3. Add env vars in the dashboard
-4. Auto-deploys on every push
+#### Zeabur
+Free tier, auto-deploy.
 
-### 5. Fly.io (Backup)
+1. Go to [zeabur.com](https://zeabur.com/) > Login with GitHub
+2. Create project > Deploy from GitHub > Select `openclaw-bot`
+3. Add env vars > Deploy
 
-**Free**: 3 shared VMs
+#### HuggingFace Spaces
+Free Docker Space, runs 24/7.
+
+1. Go to [huggingface.co/new-space](https://huggingface.co/new-space)
+2. Select Docker SDK, import from GitHub
+3. Add secrets: `TELEGRAM_BOT_TOKEN`, `GROQ_API_KEY`
+4. Space builds and runs automatically
+
+#### Fly.io
+3 free shared VMs.
 
 ```bash
 flyctl launch --copy-config
@@ -149,117 +173,139 @@ flyctl secrets set TELEGRAM_BOT_TOKEN=... GROQ_API_KEY=...
 flyctl deploy
 ```
 
-Sign up: [fly.io](https://fly.io/)
+### Credit Card Platforms (Free Forever After Verify)
 
-## Self-Healing System
+#### 1. Oracle Cloud Always Free (Recommended)
 
-The bot has multiple layers of auto-recovery:
+ARM Ampere A1 (4 OCPU, 24 GB RAM) or AMD E2.1.Micro - free forever.
 
-1. **Python error handler** - catches all exceptions, sends user-friendly message
-2. **Provider auto-fallback** - if one AI provider fails, instantly tries the next
-3. **systemd auto-restart** - RestartSec=5, restarts on any crash
-4. **Watchdog cron** - checks every 5 minutes, restarts if dead
-5. **Health endpoint** - `/health` returns JSON status for monitoring
-6. **Self-ping loop** - keeps free-tier services awake (pings every 4 min)
-7. **GitHub Actions health check** - runs every 5 minutes, auto-restarts VPS
-8. **Auto-rollback** - if deploy fails, reverts to previous version
-9. **Daily auto-update** - pulls latest code from GitHub at 4 AM UTC
+```bash
+curl -sSL https://raw.githubusercontent.com/gautamrose96-bit/openclaw-bot/main/setup-oracle-vps.sh | bash
+sudo nano /opt/openclaw-bot/.env
+sudo systemctl start openclaw-bot
+```
+
+Sign up: [cloud.oracle.com](https://cloud.oracle.com/)
+
+#### 2. Google Cloud Free Tier
+
+1x e2-micro instance in us-central1 - free forever.
+
+```bash
+chmod +x setup-gcp.sh && ./setup-gcp.sh
+```
+
+Sign up: [cloud.google.com](https://cloud.google.com/)
+
+## Self-Healing System (9 Layers)
+
+| Layer | What It Does | Interval |
+|-------|-------------|----------|
+| Error Handler | Catches all exceptions, sends friendly message | Every request |
+| Provider Fallback | If AI provider fails, tries next one instantly | Every request |
+| systemd Restart | Restarts bot on crash | 5 seconds |
+| Watchdog Cron | Checks if bot is alive, restarts if dead | 5 minutes |
+| Self-Ping | Pings own health endpoint to prevent sleep | 4 minutes |
+| Health Endpoint | `/health` and `/ping` for external monitoring | Always on |
+| GitHub Actions | Checks all platforms, auto-restarts if down | 5 minutes |
+| UptimeRobot | External monitor, alerts on downtime | 5 minutes |
+| Auto-Rollback | If deploy fails on VPS, reverts to previous version | On deploy |
 
 ## Keep-Alive System
 
-Free-tier services often sleep after inactivity. The bot prevents this with:
+Free platforms may sleep after inactivity. The bot prevents this:
 
-- **Self-ping**: Internal loop pings `/health` every 4 minutes
-- **UptimeRobot**: Free external monitoring (set up at [uptimerobot.com](https://uptimerobot.com/))
-  - Add HTTP monitor: `http://YOUR_SERVER_IP:8080/health`
-  - Check interval: 5 minutes
-  - Get alerts if bot goes down
-- **GitHub Actions**: Health check workflow runs every 5 minutes
+1. **Self-ping**: Internal loop hits `/health` every 4 minutes
+2. **UptimeRobot** (free): [uptimerobot.com](https://uptimerobot.com/) - add HTTP monitor for your bot URL
+3. **GitHub Actions**: Health check every 5 minutes with auto-restart
 
 ## CI/CD (GitHub Actions)
 
 ### Auto-Deploy (`deploy.yml`)
-- Lint + test on every push
-- Deploy to VPS, Railway, and Fly.io in parallel
-- Auto-rollback on VPS if deploy fails
+Deploys to all platforms on push to `main`: VPS, Railway, Fly.io, Koyeb, Render
 
 ### Health Check (`health-check.yml`)
-- Runs every 5 minutes
-- Checks all platform health endpoints
-- Auto-restarts VPS if down
+Runs every 5 minutes. Checks all platforms. Auto-restarts any that are down.
 
-### Required Secrets (Settings > Secrets > Actions)
+### Optional Secrets (repo Settings > Secrets)
 
-| Secret | Description | Required |
-|--------|-------------|----------|
-| `VPS_HOST` | Oracle/GCP server IP | For VPS deploy |
-| `VPS_USER` | SSH username | For VPS deploy |
-| `VPS_SSH_KEY` | SSH private key | For VPS deploy |
-| `VPS_HEALTH_URL` | `http://IP:8080/health` | For health checks |
-| `RAILWAY_TOKEN` | Railway deploy token | For Railway |
-| `FLY_API_TOKEN` | Fly.io API token | For Fly.io |
+| Secret | For |
+|--------|-----|
+| `VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY` | Oracle/GCP VPS |
+| `VPS_HEALTH_URL` | VPS health check |
+| `RAILWAY_TOKEN` | Railway deploy |
+| `FLY_API_TOKEN` | Fly.io deploy |
+| `KOYEB_API_TOKEN` | Koyeb redeploy |
+| `RENDER_DEPLOY_HOOK` | Render deploy |
+| `*_HEALTH_URL` | Health check URLs |
 
 ## Project Structure
 
 ```
 openclaw-bot/
-├── bot.py                      # Entry point
-├── config.py                   # Multi-provider config + model registry
-├── requirements.txt            # Python dependencies
-├── Dockerfile                  # Container build (Railway, Fly.io, Render)
-├── Procfile                    # Railway/Render process
+├── bot.py                       # Entry point
+├── config.py                    # Multi-provider config + model registry
+├── requirements.txt             # Python deps
+├── Dockerfile                   # Container (Koyeb, Railway, Render, Fly, HF, Back4App)
+├── Procfile                     # Railway/Render
+├── runtime.txt                  # Python version
 ├── handlers/
-│   ├── commands.py             # /start /help /model /status /tokens /restart
-│   └── messages.py             # AI chat with auto-fallback
+│   ├── commands.py              # All bot commands
+│   └── messages.py              # AI chat with auto-fallback
 ├── services/
-│   ├── ai_client.py            # Multi-provider AI with fallback rotation
-│   └── health.py               # HTTP health server + self-ping
+│   ├── ai_client.py             # Multi-provider AI engine
+│   └── health.py                # Health server + self-ping
 ├── utils/
-│   ├── error_handler.py        # Global error handler
-│   └── logger.py               # Shared logger
-├── ecosystem.config.js         # PM2 config
-├── openclaw-bot.service        # systemd service
-├── autostart.sh                # Shell auto-restart wrapper
-├── setup-oracle-vps.sh         # Oracle Cloud one-command setup
-├── setup-gcp.sh                # Google Cloud setup
-├── fly.toml                    # Fly.io config
-├── render.yaml                 # Render.com config
-├── railway.json                # Railway config
-├── nixpacks.toml               # Railway/Nixpacks build
+│   ├── error_handler.py         # Global error handler
+│   └── logger.py                # Shared logger
+├── koyeb.yaml                   # Koyeb config
+├── fly.toml                     # Fly.io config
+├── render.yaml                  # Render config
+├── railway.json                 # Railway config
+├── nixpacks.toml                # Railway/Nixpacks
+├── glitch.json                  # Glitch config
+├── back4app.json                # Back4App config
+├── zeabur.json                  # Zeabur config
+├── ecosystem.config.js          # PM2 config
+├── openclaw-bot.service         # systemd service
+├── autostart.sh                 # Shell auto-restart
+├── setup-oracle-vps.sh          # Oracle Cloud setup
+├── setup-gcp.sh                 # Google Cloud setup
 └── .github/workflows/
-    ├── deploy.yml              # Multi-platform auto-deploy
-    └── health-check.yml        # 5-minute health checks
+    ├── deploy.yml               # Multi-platform deploy
+    └── health-check.yml         # 5-min health checks
 ```
 
 ## Troubleshooting
 
 | Problem | Solution |
 |---------|----------|
-| "Conflict: terminated by other getUpdates" | Only one bot instance can run per token. Stop other instances. |
-| Bot not responding | Check `/status`. If all providers show COOLDOWN, wait 60s or add more provider keys. |
-| Rate limited | Add more AI provider API keys. The bot auto-rotates between them. |
-| Server sleeping (Render/Railway) | Set up UptimeRobot to ping `/health` every 5 min. |
-| Deploy failed | Check GitHub Actions logs. The VPS auto-rolls back on failure. |
-| Out of free credits (Railway) | Bot continues on other platforms. Railway resets monthly. |
+| "Conflict: terminated by other getUpdates" | Only one bot instance can run per token. Stop others first. |
+| Bot not responding | Run `/status`. If providers show COOLDOWN, wait 60s or add more API keys. |
+| Rate limited | Add more AI provider keys. Bot auto-rotates between them. |
+| Server sleeping | Set up UptimeRobot to ping `/health` every 5 min. Self-ping is also built in. |
+| Deploy failed | GitHub Actions auto-rolls back on VPS. Check Actions tab for logs. |
+| Platform shut down | Deploy on another platform. 10 options available. |
 
-## Security
+## Dead Platforms (Don't Use)
 
-- All secrets in `.env`, never hardcoded or committed
-- `.env` is in `.gitignore`
-- systemd runs as dedicated user with filesystem hardening
-- Firewall allows only SSH inbound
-- Automatic OS security updates
+These platforms from older guides are **shut down** as of 2026:
+- ~~Deta.space / deta.sh~~ - Shut down
+- ~~Cyclic.sh~~ - Shut down
+- ~~Adaptable.io~~ - Shut down
+- ~~Heroku Free~~ - Removed free tier in 2022
 
 ## Zero Cost Guarantee
 
-Every component is free tier:
-- **AI**: Groq, Gemini, Mistral, Cohere, HuggingFace, OpenRouter (all free)
-- **Hosting**: Oracle Always Free, GCP Free, Railway $5/mo credit, Render Free, Fly.io Free
-- **Monitoring**: UptimeRobot Free, GitHub Actions (2000 min/mo)
-- **CI/CD**: GitHub Actions Free
-- **Domain**: Not needed (Telegram bot uses polling)
-
-**Total lifetime cost: $0**
+| Component | Platform | Cost |
+|-----------|----------|------|
+| AI | Groq + Gemini + Mistral + Cohere + HF + OpenRouter | $0 |
+| Hosting | Koyeb / Railway / Render / Glitch / Back4App / Zeabur / HF | $0 |
+| VPS | Oracle Always Free / GCP Free | $0 |
+| Monitoring | UptimeRobot + GitHub Actions | $0 |
+| CI/CD | GitHub Actions (2000 min/mo) | $0 |
+| Domain | Not needed (Telegram polling) | $0 |
+| **Total** | | **$0 forever** |
 
 ## License
 

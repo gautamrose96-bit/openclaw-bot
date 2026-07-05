@@ -1,0 +1,12 @@
+{
+  "build": {
+    "type": "dockerfile"
+  },
+  "start": {
+    "command": "python3 bot.py"
+  },
+  "health_check": {
+    "path": "/health",
+    "port": 8080
+  }
+}

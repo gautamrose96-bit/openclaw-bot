@@ -1,0 +1,10 @@
+{
+  "install": "pip3 install --user -r requirements.txt",
+  "start": "python3 bot.py",
+  "watch": {
+    "restart": {
+      "include": ["\\.(py)$"]
+    },
+    "throttle": 3000
+  }
+}

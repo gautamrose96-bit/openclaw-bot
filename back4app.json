@@ -1,0 +1,19 @@
+{
+  "scripts": {
+    "start": "python3 bot.py"
+  },
+  "env": {
+    "TELEGRAM_BOT_TOKEN": {
+      "required": true
+    },
+    "GROQ_API_KEY": {
+      "required": true
+    },
+    "HEALTH_PORT": "8080"
+  },
+  "buildpacks": [
+    {
+      "url": "heroku/python"
+    }
+  ]
+}

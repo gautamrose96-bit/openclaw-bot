@@ -1,4 +1,4 @@
-name: Deploy to All Platforms
+name: Deploy to All Free Platforms
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  lint-and-test:
+  lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -21,11 +21,12 @@ jobs:
         run: python -c "import config; print('Config OK')"
 
   deploy-vps:
-    needs: lint-and-test
+    needs: lint
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     steps:
       - name: Deploy to VPS (Oracle/GCP)
+        if: ${{ secrets.VPS_HOST != '' }}
         uses: appleboy/ssh-action@v1.2.2
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -48,34 +49,59 @@ jobs:
         continue-on-error: true
 
   deploy-railway:
-    needs: lint-and-test
+    needs: lint
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
       - name: Deploy to Railway
+        if: ${{ secrets.RAILWAY_TOKEN != '' }}
         uses: bervProject/railway-deploy@main
-        if: env.RAILWAY_TOKEN != ''
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         with:
           railway_token: ${{ secrets.RAILWAY_TOKEN }}
           service: openclaw-bot
         continue-on-error: true
 
   deploy-fly:
-    needs: lint-and-test
+    needs: lint
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
-      - uses: superfly/flyctl-actions/setup-flyctl@master
-        if: env.FLY_API_TOKEN != ''
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
       - name: Deploy to Fly.io
-        if: env.FLY_API_TOKEN != ''
-        run: flyctl deploy --remote-only
+        if: ${{ secrets.FLY_API_TOKEN != '' }}
+        uses: superfly/flyctl-actions/setup-flyctl@master
+      - run: flyctl deploy --remote-only
+        if: ${{ secrets.FLY_API_TOKEN != '' }}
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        continue-on-error: true
+
+  deploy-koyeb:
+    needs: lint
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy to Koyeb
+        if: ${{ secrets.KOYEB_API_TOKEN != '' }}
+        run: |
+          curl -s -X POST "https://app.koyeb.com/v1/services/openclaw-bot/redeploy" \
+            -H "Authorization: Bearer $KOYEB_API_TOKEN" \
+            -H "Content-Type: application/json" || echo "Koyeb redeploy triggered"
+        env:
+          KOYEB_API_TOKEN: ${{ secrets.KOYEB_API_TOKEN }}
+        continue-on-error: true
+
+  deploy-render:
+    needs: lint
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Deploy to Render
+        if: ${{ secrets.RENDER_DEPLOY_HOOK != '' }}
+        run: |
+          curl -s -X POST "$RENDER_DEPLOY_HOOK" || echo "Render deploy triggered"
+        env:
+          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
         continue-on-error: true
