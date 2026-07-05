@@ -1,7 +1,7 @@
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from services import GroqClient
+from services.ai_client import AIClient
 from utils import get_logger, safe_reply
 from utils.error_handler import USER_ERROR_MESSAGE
 
@@ -20,13 +20,18 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     user_id = update.effective_user.id
     logger.info("Message from user %s in chat %s", user_id, chat_id)
 
-    groq_client: GroqClient = context.bot_data["groq_client"]
+    ai_client: AIClient = context.bot_data["ai_client"]
 
     try:
-        reply = await groq_client.chat(chat_id, user_text)
+        reply = await ai_client.chat(chat_id, user_text)
         if not reply:
             reply = "I received an empty response. Please try again."
         await safe_reply(update, reply)
     except Exception:
-        logger.exception("Failed to generate response for chat %s", chat_id)
-        await safe_reply(update, USER_ERROR_MESSAGE)
+        logger.exception("All providers failed for chat %s", chat_id)
+        await safe_reply(
+            update,
+            f"{USER_ERROR_MESSAGE}\n\n"
+            "All AI providers are temporarily unavailable. "
+            "The bot will auto-retry shortly.",
+        )

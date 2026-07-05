@@ -1,4 +1,4 @@
-name: Deploy OpenClaw Bot
+name: Deploy to All Platforms
 
 on:
   push:
@@ -6,31 +6,26 @@ on:
   workflow_dispatch:
 
 jobs:
-  lint:
+  lint-and-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
-
-      - name: Install dependencies
+          python-version: "3.12"
+      - name: Install & lint
         run: |
-          pip install -r requirements.txt
-          pip install ruff
+          pip install -r requirements.txt ruff
+          ruff check .
+      - name: Verify imports
+        run: python -c "import config; print('Config OK')"
 
-      - name: Lint
-        run: ruff check .
-
-  deploy:
-    needs: lint
+  deploy-vps:
+    needs: lint-and-test
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Deploy to VPS via SSH
+      - name: Deploy to VPS (Oracle/GCP)
         uses: appleboy/ssh-action@v1.2.2
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -38,7 +33,49 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             cd /opt/openclaw-bot
-            git pull --ff-only
-            venv/bin/pip install -r requirements.txt
+            git pull --ff-only || (git fetch origin && git reset --hard origin/main)
+            venv/bin/pip install -r requirements.txt -q
             sudo systemctl restart openclaw-bot
-            echo "Deployed successfully at $(date)"
+            sleep 3
+            if systemctl is-active --quiet openclaw-bot; then
+              echo "Deploy OK"
+            else
+              echo "Deploy FAILED - rolling back"
+              git checkout HEAD~1
+              venv/bin/pip install -r requirements.txt -q
+              sudo systemctl restart openclaw-bot
+            fi
+        continue-on-error: true
+
+  deploy-railway:
+    needs: lint-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy to Railway
+        uses: bervProject/railway-deploy@main
+        if: env.RAILWAY_TOKEN != ''
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        with:
+          railway_token: ${{ secrets.RAILWAY_TOKEN }}
+          service: openclaw-bot
+        continue-on-error: true
+
+  deploy-fly:
+    needs: lint-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+        if: env.FLY_API_TOKEN != ''
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      - name: Deploy to Fly.io
+        if: env.FLY_API_TOKEN != ''
+        run: flyctl deploy --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        continue-on-error: true

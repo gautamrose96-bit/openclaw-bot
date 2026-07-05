@@ -1,0 +1,68 @@
+name: Health Check & Auto-Heal
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"  # Every 5 minutes
+  workflow_dispatch:
+
+jobs:
+  check-health:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check VPS Health
+        id: vps
+        if: env.VPS_HEALTH_URL != ''
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$VPS_HEALTH_URL" --max-time 10 || echo "000")
+          echo "status=$STATUS" >> $GITHUB_OUTPUT
+          if [ "$STATUS" = "200" ]; then
+            echo "VPS: Healthy"
+          else
+            echo "VPS: DOWN (HTTP $STATUS)"
+          fi
+        env:
+          VPS_HEALTH_URL: ${{ secrets.VPS_HEALTH_URL }}
+        continue-on-error: true
+
+      - name: Auto-restart VPS if down
+        if: steps.vps.outputs.status != '200' && env.VPS_HOST != ''
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            sudo systemctl restart openclaw-bot
+            sleep 5
+            systemctl is-active --quiet openclaw-bot && echo "Restarted OK" || echo "Still down"
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+        continue-on-error: true
+
+      - name: Check Railway Health
+        if: env.RAILWAY_HEALTH_URL != ''
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$RAILWAY_HEALTH_URL" --max-time 10 || echo "000")
+          if [ "$STATUS" = "200" ]; then
+            echo "Railway: Healthy"
+          else
+            echo "Railway: DOWN (HTTP $STATUS)"
+          fi
+        env:
+          RAILWAY_HEALTH_URL: ${{ secrets.RAILWAY_HEALTH_URL }}
+        continue-on-error: true
+
+      - name: Check Fly.io Health
+        if: env.FLY_HEALTH_URL != ''
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$FLY_HEALTH_URL" --max-time 10 || echo "000")
+          if [ "$STATUS" = "200" ]; then
+            echo "Fly.io: Healthy"
+          else
+            echo "Fly.io: DOWN (HTTP $STATUS)"
+          fi
+        env:
+          FLY_HEALTH_URL: ${{ secrets.FLY_HEALTH_URL }}
+        continue-on-error: true

@@ -3,7 +3,10 @@ from handlers.commands import (
     model_command,
     models_command,
     reset_command,
+    restart_command,
     start_command,
+    status_command,
+    tokens_command,
 )
 from handlers.messages import message_handler
 
@@ -13,5 +16,8 @@ __all__ = [
     "model_command",
     "models_command",
     "reset_command",
+    "restart_command",
+    "status_command",
+    "tokens_command",
     "message_handler",
 ]

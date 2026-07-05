@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""OpenClaw Telegram Bot - AI assistant powered by Groq with multiple models."""
+"""OpenClaw Telegram Bot - Multi-provider AI with auto-fallback and self-healing."""
+
+import asyncio
+import time
 
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters
 
@@ -10,33 +13,58 @@ from handlers import (
     model_command,
     models_command,
     reset_command,
+    restart_command,
     start_command,
+    status_command,
+    tokens_command,
 )
-from services import GroqClient
+from services import AIClient, start_health_server, self_ping_loop
 from utils import get_logger
 from utils.error_handler import handle_error
 
 logger = get_logger("bot")
 
 
+async def post_init(app) -> None:
+    """Start the self-ping keep-alive loop after the bot is initialized."""
+    asyncio.create_task(self_ping_loop())
+
+
 def main() -> None:
     config.validate()
+    config.BOT_START_TIME = time.time()
 
-    groq_client = GroqClient()
+    ai_client = AIClient()
+    start_health_server(ai_client)
 
-    app = ApplicationBuilder().token(config.TELEGRAM_BOT_TOKEN).build()
-    app.bot_data["groq_client"] = groq_client
+    providers = config.get_enabled_providers()
+    models = config.get_all_models()
+    logger.info(
+        "Starting with %d providers, %d models: %s",
+        len(providers), len(models), ", ".join(providers),
+    )
+
+    app = (
+        ApplicationBuilder()
+        .token(config.TELEGRAM_BOT_TOKEN)
+        .post_init(post_init)
+        .build()
+    )
+    app.bot_data["ai_client"] = ai_client
 
     app.add_handler(CommandHandler("start", start_command))
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CommandHandler("model", model_command))
     app.add_handler(CommandHandler("models", models_command))
+    app.add_handler(CommandHandler("status", status_command))
+    app.add_handler(CommandHandler("tokens", tokens_command))
     app.add_handler(CommandHandler("reset", reset_command))
+    app.add_handler(CommandHandler("restart", restart_command))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
 
     app.add_error_handler(handle_error)
 
-    logger.info("OpenClaw Bot starting (default model: %s)...", config.DEFAULT_MODEL)
+    logger.info("OpenClaw Bot is live!")
     app.run_polling(drop_pending_updates=True)
 
 
