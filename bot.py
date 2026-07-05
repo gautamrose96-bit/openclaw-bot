@@ -2,9 +2,9 @@
 """OpenClaw Telegram Bot - Multi-provider AI with auto-fallback and self-healing."""
 
 import asyncio
+import os
 import time
 
-from telegram.error import Conflict
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters
 
 import config
@@ -24,8 +24,6 @@ from utils import get_logger
 from utils.error_handler import handle_error
 
 logger = get_logger("bot")
-
-_CONFLICT_RETRY_DELAY = 30  # seconds to wait before retrying on 409 Conflict
 
 
 async def post_init(app) -> None:
@@ -61,7 +59,6 @@ def main() -> None:
     config.BOT_START_TIME = time.time()
 
     ai_client = AIClient()
-    start_health_server(ai_client)
 
     providers = config.get_enabled_providers()
     models = config.get_all_models()
@@ -70,21 +67,31 @@ def main() -> None:
         len(providers), len(models), ", ".join(providers),
     )
 
-    while True:
-        app = _build_app(ai_client)
-        logger.info("OpenClaw Bot starting polling...")
-        try:
-            app.run_polling(drop_pending_updates=True)
-            break  # clean exit
-        except Conflict:
-            logger.warning(
-                "Another bot instance detected (409 Conflict). "
-                "Retrying in %ds...", _CONFLICT_RETRY_DELAY,
-            )
-            time.sleep(_CONFLICT_RETRY_DELAY)
-        except Exception:
-            logger.exception("Bot crashed. Restarting in 5s...")
-            time.sleep(5)
+    app = _build_app(ai_client)
+
+    webhook_url = os.getenv("WEBHOOK_URL", "")
+    port = int(os.getenv("WEBHOOK_PORT", str(config.HEALTH_PORT)))
+
+    if webhook_url:
+        logger.info("Starting in WEBHOOK mode: %s", webhook_url)
+        app.run_webhook(
+            listen="0.0.0.0",
+            port=port,
+            url_path="webhook",
+            webhook_url=f"{webhook_url}/webhook",
+            drop_pending_updates=True,
+        )
+    else:
+        start_health_server(ai_client)
+        logger.info("Starting in POLLING mode")
+        while True:
+            try:
+                app = _build_app(ai_client)
+                app.run_polling(drop_pending_updates=True)
+                break
+            except Exception:
+                logger.exception("Bot error. Restarting in 10s...")
+                time.sleep(10)
 
 
 if __name__ == "__main__":
