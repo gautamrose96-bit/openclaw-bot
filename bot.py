@@ -4,6 +4,7 @@
 import asyncio
 import time
 
+from telegram.error import Conflict
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters
 
 import config
@@ -24,26 +25,15 @@ from utils.error_handler import handle_error
 
 logger = get_logger("bot")
 
+_CONFLICT_RETRY_DELAY = 30  # seconds to wait before retrying on 409 Conflict
+
 
 async def post_init(app) -> None:
     """Start the self-ping keep-alive loop after the bot is initialized."""
     asyncio.create_task(self_ping_loop())
 
 
-def main() -> None:
-    config.validate()
-    config.BOT_START_TIME = time.time()
-
-    ai_client = AIClient()
-    start_health_server(ai_client)
-
-    providers = config.get_enabled_providers()
-    models = config.get_all_models()
-    logger.info(
-        "Starting with %d providers, %d models: %s",
-        len(providers), len(models), ", ".join(providers),
-    )
-
+def _build_app(ai_client: AIClient):
     app = (
         ApplicationBuilder()
         .token(config.TELEGRAM_BOT_TOKEN)
@@ -63,9 +53,38 @@ def main() -> None:
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
 
     app.add_error_handler(handle_error)
+    return app
 
-    logger.info("OpenClaw Bot is live!")
-    app.run_polling(drop_pending_updates=True)
+
+def main() -> None:
+    config.validate()
+    config.BOT_START_TIME = time.time()
+
+    ai_client = AIClient()
+    start_health_server(ai_client)
+
+    providers = config.get_enabled_providers()
+    models = config.get_all_models()
+    logger.info(
+        "Starting with %d providers, %d models: %s",
+        len(providers), len(models), ", ".join(providers),
+    )
+
+    while True:
+        app = _build_app(ai_client)
+        logger.info("OpenClaw Bot starting polling...")
+        try:
+            app.run_polling(drop_pending_updates=True)
+            break  # clean exit
+        except Conflict:
+            logger.warning(
+                "Another bot instance detected (409 Conflict). "
+                "Retrying in %ds...", _CONFLICT_RETRY_DELAY,
+            )
+            time.sleep(_CONFLICT_RETRY_DELAY)
+        except Exception:
+            logger.exception("Bot crashed. Restarting in 5s...")
+            time.sleep(5)
 
 
 if __name__ == "__main__":

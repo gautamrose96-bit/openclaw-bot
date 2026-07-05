@@ -68,6 +68,7 @@ def start_health_server(ai_client=None) -> None:
 
     def _run():
         server = HTTPServer(("0.0.0.0", port), _Handler)
+        server.allow_reuse_address = True
         logger.info("Health server on port %s", port)
         server.serve_forever()
 
