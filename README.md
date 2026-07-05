@@ -39,7 +39,7 @@ User --> Telegram --> OpenClaw Bot --> Groq (primary)
 ## Features
 
 - **6 AI Providers** with automatic fallback - never run out of tokens
-- **15+ Free Models** - LLaMA 3.3, Gemini, Mixtral, Gemma, Command R, Mistral
+- **10+ Free Models** - LLaMA 3.3, LLaMA 4 Scout, Qwen 3, Gemini, Command R, Mistral
 - **10 Free Hosting Platforms** - all no-credit-card (except Oracle/GCP verify)
 - **Self-healing** - auto-restart, watchdog, health checks every 5 min
 - **Auto-deploy** - push to GitHub, all platforms update
@@ -72,16 +72,14 @@ python3 bot.py
 
 **Add ALL providers** for maximum reliability. If one hits rate limits, the bot automatically switches to the next.
 
-## Available Models (15+)
+## Available Models
 
 | Model | Command | Provider |
 |-------|---------|----------|
+| LLaMA 3.1 8B (default) | `/model llama-3.1-8b` | Groq |
 | LLaMA 3.3 70B | `/model llama-3.3-70b` | Groq |
-| LLaMA 3.1 8B | `/model llama-3.1-8b` | Groq |
-| LLaMA 3 70B | `/model llama3-70b` | Groq |
-| LLaMA 3 8B | `/model llama3-8b` | Groq |
-| Gemma 2 9B | `/model gemma2-9b` | Groq |
-| Mixtral 8x7B | `/model mixtral-8x7b` | Groq |
+| Qwen 3 32B | `/model qwen3-32b` | Groq |
+| LLaMA 4 Scout 17B | `/model llama4-scout` | Groq |
 | Gemini 2.0 Flash | `/model gemini-flash` | Google |
 | Gemini 2.0 Flash Lite | `/model gemini-flash-lite` | Google |
 | Mistral Small | `/model mistral-small` | Mistral |
@@ -90,6 +88,8 @@ python3 bot.py
 | OR LLaMA 3.3 70B | `/model or-llama` | OpenRouter |
 | OR Gemma 2 9B | `/model or-gemma` | OpenRouter |
 | OR Mistral 7B | `/model or-mistral` | OpenRouter |
+
+> When a model is rate-limited, the bot automatically tries the next model in the same provider before falling back to another provider.
 
 ## Bot Commands
 
@@ -221,6 +221,9 @@ Free platforms may sleep after inactivity. The bot prevents this:
 
 ## CI/CD (GitHub Actions)
 
+### Bot Runner (`run-bot.yml`)
+Runs the bot directly on GitHub Actions - no external platform needed. Restarts every 5 hours via cron. Requires `TELEGRAM_BOT_TOKEN` and `GROQ_API_KEY` as repo secrets.
+
 ### Auto-Deploy (`deploy.yml`)
 Deploys to all platforms on push to `main`: VPS, Railway, Fly.io, Koyeb, Render
 
@@ -238,6 +241,8 @@ Runs every 5 minutes. Checks all platforms. Auto-restarts any that are down.
 | `KOYEB_API_TOKEN` | Koyeb redeploy |
 | `RENDER_DEPLOY_HOOK` | Render deploy |
 | `*_HEALTH_URL` | Health check URLs |
+| `TELEGRAM_BOT_TOKEN` | Bot runner (run-bot.yml) |
+| `GROQ_API_KEY` | Bot runner (run-bot.yml) |
 
 ## Project Structure
 
@@ -272,6 +277,7 @@ openclaw-bot/
 ├── setup-oracle-vps.sh          # Oracle Cloud setup
 ├── setup-gcp.sh                 # Google Cloud setup
 └── .github/workflows/
+    ├── run-bot.yml               # Run bot on GitHub Actions
     ├── deploy.yml               # Multi-platform deploy
     └── health-check.yml         # 5-min health checks
 ```
