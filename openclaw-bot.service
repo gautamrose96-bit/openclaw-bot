@@ -1,0 +1,26 @@
+[Unit]
+Description=OpenClaw Telegram Bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=openclaw
+Group=openclaw
+WorkingDirectory=/opt/openclaw-bot
+ExecStart=/opt/openclaw-bot/venv/bin/python3 bot.py
+Restart=always
+RestartSec=5
+StartLimitIntervalSec=60
+StartLimitBurst=10
+EnvironmentFile=/opt/openclaw-bot/.env
+
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/openclaw-bot/logs
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
