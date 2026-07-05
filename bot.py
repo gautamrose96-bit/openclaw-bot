@@ -1,10 +1,17 @@
 #!/usr/bin/env python3
-"""OpenClaw Telegram Bot - AI assistant powered by Groq."""
+"""OpenClaw Telegram Bot - AI assistant powered by Groq with multiple models."""
 
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters
 
 import config
-from handlers import help_command, message_handler, reset_command, start_command
+from handlers import (
+    help_command,
+    message_handler,
+    model_command,
+    models_command,
+    reset_command,
+    start_command,
+)
 from services import GroqClient
 from utils import get_logger
 from utils.error_handler import handle_error
@@ -22,12 +29,14 @@ def main() -> None:
 
     app.add_handler(CommandHandler("start", start_command))
     app.add_handler(CommandHandler("help", help_command))
+    app.add_handler(CommandHandler("model", model_command))
+    app.add_handler(CommandHandler("models", models_command))
     app.add_handler(CommandHandler("reset", reset_command))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
 
     app.add_error_handler(handle_error)
 
-    logger.info("OpenClaw Bot starting (model: %s)...", config.GROQ_MODEL)
+    logger.info("OpenClaw Bot starting (default model: %s)...", config.DEFAULT_MODEL)
     app.run_polling(drop_pending_updates=True)
 
 

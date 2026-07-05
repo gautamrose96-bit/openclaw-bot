@@ -1,132 +1,146 @@
 # OpenClaw Bot
 
-AI-powered Telegram bot using [Groq](https://groq.com/) (LLaMA 3.3 70B). Runs 24/7 for free on Oracle Cloud Always Free tier.
+AI-powered Telegram bot with **6 free AI models** via [Groq](https://groq.com/). Runs **24/7 for free** on Oracle Cloud Always Free tier.
 
 ## Features
 
-- Chat with LLaMA 3.3 70B via Groq's ultra-fast inference
-- Per-chat conversation memory with `/reset` to clear
-- Structured codebase: handlers, services, and shared utilities (no code duplication)
-- Production-ready error handling and logging
-- Multiple deployment options: systemd, PM2, or plain script
+- **6 AI models** - switch anytime with `/model` (LLaMA 3.3 70B, LLaMA 3.1 8B, LLaMA 3 70B/8B, Gemma 2 9B, Mixtral 8x7B)
+- Per-chat conversation memory with `/reset`
+- Zero-cost 24/7 hosting on Oracle Cloud Always Free
+- Auto-restart, watchdog, and daily auto-updates
+- Modular codebase with shared utilities (no code duplication)
 
-## Project Structure
+## Available Models (all free via Groq)
 
-```
-openclaw-bot/
-├── bot.py                     # Entry point
-├── config.py                  # Env-based configuration
-├── handlers/
-│   ├── commands.py            # /start, /help, /reset
-│   └── messages.py            # Free-text message handler
-├── services/
-│   └── groq_client.py         # Groq API wrapper with chat history
-├── utils/
-│   ├── error_handler.py       # Global error handler + safe_reply
-│   └── logger.py              # Shared logger factory
-├── ecosystem.config.js        # PM2 config
-├── autostart.sh               # Auto-restart shell script
-├── openclaw-bot.service       # systemd unit file
-├── setup-oracle-vps.sh        # One-command Oracle Cloud VPS setup
-└── .github/workflows/
-    └── deploy.yml             # CI/CD: lint + SSH deploy
-```
+| Model | Command | Best For |
+|-------|---------|----------|
+| LLaMA 3.3 70B | `/model llama-3.3-70b` | Complex tasks (default) |
+| LLaMA 3.1 8B | `/model llama-3.1-8b` | Fast simple tasks |
+| LLaMA 3 70B | `/model llama3-70b` | Large 8K context |
+| LLaMA 3 8B | `/model llama3-8b` | Fastest responses |
+| Gemma 2 9B | `/model gemma2-9b` | Good all-rounder |
+| Mixtral 8x7B | `/model mixtral-8x7b` | 32K context window |
 
 ## Quick Start
-
-### 1. Clone & install
 
 ```bash
 git clone https://github.com/gautamrose96-bit/openclaw-bot.git
 cd openclaw-bot
-python3 -m venv venv
-source venv/bin/activate
+python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
-```
-
-### 2. Configure
-
-```bash
 cp .env.example .env
-# Edit .env and add your keys:
-#   TELEGRAM_BOT_TOKEN=...
-#   GROQ_API_KEY=...
-```
-
-Get your keys:
-- **Telegram token**: message [@BotFather](https://t.me/BotFather) on Telegram
-- **Groq API key**: [console.groq.com/keys](https://console.groq.com/keys)
-
-### 3. Run
-
-```bash
+# Edit .env: add TELEGRAM_BOT_TOKEN and GROQ_API_KEY
 python3 bot.py
 ```
 
-## Deployment (Free 24/7)
+Get your keys:
+- **Telegram**: [@BotFather](https://t.me/BotFather)
+- **Groq**: [console.groq.com/keys](https://console.groq.com/keys)
 
-### Option A: Oracle Cloud Always Free VPS (Recommended)
+## Free 24/7 Deployment (Oracle Cloud)
 
-Oracle Cloud offers **Always Free** ARM instances (4 OCPU, 24 GB RAM) that never expire.
+Oracle Cloud Always Free tier gives you a **lifetime free** VPS:
+- ARM Ampere A1: up to 4 OCPUs + 24 GB RAM
+- AMD E2.1.Micro: 1 OCPU + 1 GB RAM
+- 200 GB storage, 10 TB/month bandwidth
 
-1. Sign up at [cloud.oracle.com](https://cloud.oracle.com/) (credit card required for verification, never charged)
-2. Create an **Always Free** Ampere A1 or E2.1.Micro compute instance (Ubuntu 22.04)
-3. SSH in and run:
+### Setup Steps
+
+1. **Create account**: [cloud.oracle.com](https://cloud.oracle.com/) (credit card for verification only, never charged for Always Free)
+2. **Create instance**: Compute > Create Instance > Always Free eligible shape (Ampere A1 or E2.1.Micro) > Ubuntu 22.04/24.04
+3. **SSH in** and run one command:
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/gautamrose96-bit/openclaw-bot/main/setup-oracle-vps.sh | bash
-sudo nano /opt/openclaw-bot/.env   # add your keys
+```
+
+4. **Add your keys**:
+```bash
+sudo nano /opt/openclaw-bot/.env
+```
+
+5. **Start**:
+```bash
 sudo systemctl start openclaw-bot
 ```
 
-### Option B: PM2 (any VPS)
+### What the setup script does automatically
 
+- Installs Python, creates virtualenv, installs dependencies
+- Creates dedicated `openclaw` service user (security)
+- Configures UFW firewall (SSH only)
+- Installs systemd service with auto-restart
+- Creates watchdog cron (checks every 5 min)
+- Daily auto-update from GitHub (4 AM UTC)
+- 2 GB swap file (essential for 1 GB RAM instances)
+- Automatic OS security updates
+- Weekly old log cleanup
+
+## Other Deployment Options
+
+### PM2
 ```bash
 npm install -g pm2
 pm2 start ecosystem.config.js
-pm2 save
-pm2 startup   # follow the printed command to enable on boot
+pm2 save && pm2 startup
 ```
 
-### Option C: systemd (manual)
-
+### systemd (manual)
 ```bash
 sudo cp openclaw-bot.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now openclaw-bot
 ```
 
-### Option D: Auto-restart script
-
+### Auto-restart script
 ```bash
 ./autostart.sh
 ```
 
-## CI/CD (GitHub Actions)
+## CI/CD
 
-The included workflow (`.github/workflows/deploy.yml`) automatically:
-1. Lints on every push
-2. Deploys to your VPS via SSH on pushes to `main`
-
-Add these secrets in your repo settings (`Settings > Secrets > Actions`):
-- `VPS_HOST` - your server IP
-- `VPS_USER` - SSH username (e.g. `ubuntu`)
-- `VPS_SSH_KEY` - private SSH key for the server
+GitHub Actions workflow (`.github/workflows/deploy.yml`) auto-deploys on push to `main`. Add these repo secrets:
+- `VPS_HOST` - server IP
+- `VPS_USER` - SSH user
+- `VPS_SSH_KEY` - SSH private key
 
 ## Bot Commands
 
-| Command  | Description                    |
-|----------|--------------------------------|
-| `/start` | Welcome message                |
-| `/help`  | Show available commands        |
-| `/reset` | Clear conversation history     |
+| Command | Description |
+|---------|-------------|
+| `/start` | Welcome message |
+| `/help` | Show commands |
+| `/model <name>` | Switch AI model |
+| `/models` | List available models |
+| `/reset` | Clear conversation history |
+
+## Project Structure
+
+```
+├── bot.py                  # Entry point
+├── config.py               # Env config + model registry
+├── handlers/
+│   ├── commands.py         # /start, /help, /model, /reset
+│   └── messages.py         # Free-text message handler
+├── services/
+│   └── groq_client.py      # Groq API + per-chat history & model
+├── utils/
+│   ├── error_handler.py    # Global error handler + safe_reply
+│   └── logger.py           # Shared logger factory
+├── ecosystem.config.js     # PM2 config
+├── openclaw-bot.service    # systemd service
+├── setup-oracle-vps.sh     # One-command Oracle Cloud setup
+├── autostart.sh            # Auto-restart wrapper
+└── .github/workflows/
+    └── deploy.yml          # CI/CD pipeline
+```
 
 ## Security
 
-- All secrets are loaded from `.env` (never hardcoded)
-- `.env` is in `.gitignore` and will never be committed
-- systemd service runs as a dedicated `openclaw` user with filesystem hardening
-- Firewall configured to allow only SSH (outbound HTTPS for Telegram/Groq APIs)
+- All secrets in `.env` (never hardcoded, never committed)
+- systemd runs as dedicated user with filesystem hardening
+- Firewall allows only SSH inbound
+- Automatic OS security updates enabled
 
 ## License
 
