@@ -35,3 +35,6 @@ logs/
 
 # Node (for PM2)
 node_modules/
+
+# Linter cache
+.ruff_cache/
