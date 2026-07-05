@@ -1,0 +1,44 @@
+name: Run OpenClaw Bot 24/7
+
+on:
+  schedule:
+    # Restart every 5 hours to stay within GitHub Actions 6-hour limit
+    - cron: "0 */5 * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+concurrency:
+  group: openclaw-bot-runner
+  cancel-in-progress: true
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350  # ~5h50m, just under 6h limit
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run bot
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+          COHERE_API_KEY: ${{ secrets.COHERE_API_KEY }}
+          HF_API_KEY: ${{ secrets.HF_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          HEALTH_PORT: "8080"
+        run: |
+          echo "Starting OpenClaw Bot at $(date -u)"
+          timeout 20700 python3 bot.py || true
+          echo "Bot session ended at $(date -u)"
+          echo "Next session starts via scheduled cron"
