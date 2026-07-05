@@ -2,7 +2,7 @@
 
 import time
 
-from openai import OpenAI
+from openai import AsyncOpenAI
 
 import config
 from utils.logger import get_logger
@@ -17,19 +17,17 @@ class AIClient:
     """Routes chat requests across multiple AI providers with auto-fallback."""
 
     def __init__(self) -> None:
-        self._clients: dict[str, OpenAI] = {}
+        self._clients: dict[str, AsyncOpenAI] = {}
         self._histories: dict[int, list[dict[str, str]]] = {}
         self._chat_provider: dict[int, str] = {}
         self._chat_model: dict[int, str] = {}
-        # Track per-provider failures: provider -> last_fail_timestamp
         self._provider_failures: dict[str, float] = {}
-        # Track per-provider request counts (for /tokens display)
         self._provider_requests: dict[str, int] = {}
 
         for prov_name, prov in config.PROVIDERS.items():
             if not prov["key"]:
                 continue
-            self._clients[prov_name] = OpenAI(
+            self._clients[prov_name] = AsyncOpenAI(
                 api_key=prov["key"],
                 base_url=prov["base_url"],
             )
@@ -39,7 +37,7 @@ class AIClient:
     # ── Provider ordering ──
 
     def _get_provider_order(self, preferred: str) -> list[str]:
-        """Return providers sorted: preferred first, then healthy ones, failed ones last."""
+        """Return providers sorted: preferred first, then healthy, failed last."""
         now = time.time()
         healthy = []
         cooldown = []
@@ -117,7 +115,7 @@ class AIClient:
         for prov_name in providers_to_try:
             model = preferred_model if prov_name == preferred_provider else self._get_default_model(prov_name)
             try:
-                reply = self._call_provider(prov_name, model, messages)
+                reply = await self._call_provider(prov_name, model, messages)
                 history.append({"role": "assistant", "content": reply})
                 if prov_name != preferred_provider:
                     logger.info(
@@ -132,21 +130,19 @@ class AIClient:
                     "Provider %s failed (model=%s): %s", prov_name, model, exc,
                 )
 
-        # All providers failed
-        history.pop()  # remove the user message
+        history.pop()
         logger.error("All providers failed for chat %s", chat_id)
         raise last_error  # type: ignore[misc]
 
-    def _call_provider(self, provider: str, model: str, messages: list[dict]) -> str:
+    async def _call_provider(self, provider: str, model: str, messages: list[dict]) -> str:
         client = self._clients[provider]
-        response = client.chat.completions.create(
+        response = await client.chat.completions.create(
             model=model,
             messages=messages,
             max_tokens=config.MAX_RESPONSE_TOKENS,
             temperature=0.7,
         )
         self._provider_requests[provider] = self._provider_requests.get(provider, 0) + 1
-        # Clear failure record on success
         self._provider_failures.pop(provider, None)
         content = response.choices[0].message.content
         return content or ""
