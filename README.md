@@ -2,6 +2,16 @@
 
 AI Telegram bot with **6 free AI providers**, **15+ models**, and **5 free hosting platforms**. Runs **24/7 forever at $0 cost**.
 
+## One-Click Deploy (Login with GitHub)
+
+| Platform | Deploy | Free Tier |
+|----------|--------|-----------|
+| **Railway** | [![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/template?template=https://github.com/gautamrose96-bit/openclaw-bot) | $5/month free credit |
+| **Render** | [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/gautamrose96-bit/openclaw-bot) | Free worker |
+| **Koyeb** | [![Deploy to Koyeb](https://www.koyeb.com/static/images/deploy/button.svg)](https://app.koyeb.com/deploy?name=openclaw-bot&type=git&repository=github.com/gautamrose96-bit/openclaw-bot&branch=main&builder=dockerfile&instance_type=free&env[TELEGRAM_BOT_TOKEN]=&env[GROQ_API_KEY]=) | Free nano instance 24/7 |
+
+> Click any button above > Login with GitHub > Add your API keys > Done! Bot runs 24/7 free.
+
 ```
 User  -->  Telegram  -->  OpenClaw Bot  -->  Groq (primary)
                                |              |-- Gemini (fallback 1)
