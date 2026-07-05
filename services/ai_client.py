@@ -9,7 +9,6 @@ from utils.logger import get_logger
 
 logger = get_logger("ai_client")
 
-# Cooldown (seconds) after a provider fails before retrying it
 _PROVIDER_COOLDOWN = 60
 
 
@@ -23,6 +22,8 @@ class AIClient:
         self._chat_model: dict[int, str] = {}
         self._provider_failures: dict[str, float] = {}
         self._provider_requests: dict[str, int] = {}
+        # Track per-model failures within a provider
+        self._model_failures: dict[str, float] = {}
 
         for prov_name, prov in config.PROVIDERS.items():
             if not prov["key"]:
@@ -33,8 +34,6 @@ class AIClient:
             )
             self._provider_requests[prov_name] = 0
             logger.info("Enabled provider: %s (%s)", prov["name"], prov_name)
-
-    # ── Provider ordering ──
 
     def _get_provider_order(self, preferred: str) -> list[str]:
         """Return providers sorted: preferred first, then healthy, failed last."""
@@ -56,11 +55,27 @@ class AIClient:
         result.extend(cooldown)
         return result
 
+    def _get_models_for_provider(self, provider: str, preferred_model: str) -> list[str]:
+        """Return model IDs for a provider, preferred first, skip recently failed ones."""
+        now = time.time()
+        prov_models = config.PROVIDERS[provider]["models"]
+        all_ids = [info["id"] for info in prov_models.values()]
+        # Put preferred model first if it belongs to this provider
+        ordered = []
+        if preferred_model in all_ids:
+            ordered.append(preferred_model)
+        for mid in all_ids:
+            if mid == preferred_model:
+                continue
+            # Skip models that failed in the last 5 minutes
+            if now - self._model_failures.get(mid, 0) < 300:
+                continue
+            ordered.append(mid)
+        return ordered
+
     def _get_default_model(self, provider: str) -> str:
         models = config.PROVIDERS[provider]["models"]
         return next(iter(models.values()))["id"]
-
-    # ── Per-chat state ──
 
     def _get_history(self, chat_id: int) -> list[dict[str, str]]:
         if chat_id not in self._histories:
@@ -90,8 +105,6 @@ class AIClient:
             if now - self._provider_failures.get(n, 0) > _PROVIDER_COOLDOWN
         ]
 
-    # ── Chat ──
-
     def _trim_history(self, history: list[dict[str, str]]) -> None:
         max_msgs = config.MAX_CONTEXT_MESSAGES * 2
         while len(history) > max_msgs:
@@ -113,25 +126,34 @@ class AIClient:
 
         last_error = None
         for prov_name in providers_to_try:
-            model = preferred_model if prov_name == preferred_provider else self._get_default_model(prov_name)
-            try:
-                reply = await self._call_provider(prov_name, model, messages)
-                history.append({"role": "assistant", "content": reply})
-                if prov_name != preferred_provider:
-                    logger.info(
-                        "Fallback: %s -> %s for chat %s",
-                        preferred_provider, prov_name, chat_id,
-                    )
-                return reply
-            except Exception as exc:
-                self._provider_failures[prov_name] = time.time()
-                last_error = exc
-                logger.warning(
-                    "Provider %s failed (model=%s): %s", prov_name, model, exc,
-                )
+            # Try all models in this provider (preferred first, then others)
+            models_to_try = self._get_models_for_provider(prov_name, preferred_model)
+            if not models_to_try:
+                models_to_try = [self._get_default_model(prov_name)]
+
+            for model in models_to_try:
+                try:
+                    reply = await self._call_provider(prov_name, model, messages)
+                    history.append({"role": "assistant", "content": reply})
+                    if prov_name != preferred_provider or model != preferred_model:
+                        logger.info(
+                            "Used %s/%s for chat %s (preferred: %s/%s)",
+                            prov_name, model, chat_id, preferred_provider, preferred_model,
+                        )
+                    return reply
+                except Exception as exc:
+                    last_error = exc
+                    err_str = str(exc)
+                    if "rate_limit" in err_str or "429" in err_str:
+                        self._model_failures[model] = time.time()
+                        logger.warning("Model %s rate-limited, trying next", model)
+                    else:
+                        self._provider_failures[prov_name] = time.time()
+                        logger.warning("Provider %s failed: %s", prov_name, exc)
+                        break  # Non-rate-limit error: skip entire provider
 
         history.pop()
-        logger.error("All providers failed for chat %s", chat_id)
+        logger.error("All providers/models failed for chat %s", chat_id)
         raise last_error  # type: ignore[misc]
 
     async def _call_provider(self, provider: str, model: str, messages: list[dict]) -> str:
@@ -144,5 +166,6 @@ class AIClient:
         )
         self._provider_requests[provider] = self._provider_requests.get(provider, 0) + 1
         self._provider_failures.pop(provider, None)
+        self._model_failures.pop(model, None)
         content = response.choices[0].message.content
         return content or ""

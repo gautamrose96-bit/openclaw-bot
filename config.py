@@ -17,7 +17,7 @@ OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 
 # ── Defaults ──
 DEFAULT_PROVIDER = os.getenv("DEFAULT_PROVIDER", "groq")
-DEFAULT_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+DEFAULT_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
 MAX_CONTEXT_MESSAGES = int(os.getenv("MAX_CONTEXT_MESSAGES", "20"))
 MAX_RESPONSE_TOKENS = int(os.getenv("MAX_RESPONSE_TOKENS", "2048"))
 SYSTEM_PROMPT = os.getenv(
@@ -37,35 +37,25 @@ PROVIDERS = {
         "key": GROQ_API_KEY,
         "base_url": "https://api.groq.com/openai/v1",
         "models": {
+            "llama-3.1-8b": {
+                "id": "llama-3.1-8b-instant",
+                "name": "LLaMA 3.1 8B",
+                "description": "Fast, efficient, default model",
+            },
             "llama-3.3-70b": {
                 "id": "llama-3.3-70b-versatile",
                 "name": "LLaMA 3.3 70B",
                 "description": "Most capable, best for complex tasks",
             },
-            "llama-3.1-8b": {
-                "id": "llama-3.1-8b-instant",
-                "name": "LLaMA 3.1 8B",
-                "description": "Fast and efficient",
+            "qwen3-32b": {
+                "id": "qwen/qwen3-32b",
+                "name": "Qwen 3 32B",
+                "description": "Strong reasoning and coding",
             },
-            "llama3-70b": {
-                "id": "llama3-70b-8192",
-                "name": "LLaMA 3 70B",
-                "description": "Large 8K context",
-            },
-            "llama3-8b": {
-                "id": "llama3-8b-8192",
-                "name": "LLaMA 3 8B",
-                "description": "Fastest responses",
-            },
-            "gemma2-9b": {
-                "id": "gemma2-9b-it",
-                "name": "Gemma 2 9B",
-                "description": "Google Gemma, good all-rounder",
-            },
-            "mixtral-8x7b": {
-                "id": "mixtral-8x7b-32768",
-                "name": "Mixtral 8x7B",
-                "description": "32K context, mixture of experts",
+            "llama4-scout": {
+                "id": "meta-llama/llama-4-scout-17b-16e-instruct",
+                "name": "LLaMA 4 Scout 17B",
+                "description": "Latest LLaMA 4, multimodal",
             },
         },
     },
