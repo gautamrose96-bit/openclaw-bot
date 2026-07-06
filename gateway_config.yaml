@@ -1,0 +1,51 @@
+# OpenClaw Gateway / LiteLLM Proxy Configuration
+# Model routing with provider-specific token limits
+
+model_list:
+  - model_name: groq/llama-3.3-70b-versatile
+    litellm_params:
+      model: groq/llama-3.3-70b-versatile
+      api_key: os.environ/GROQ_API_KEY
+      max_completion_tokens: 8192
+
+  - model_name: groq/llama-3.1-8b-instant
+    litellm_params:
+      model: groq/llama-3.1-8b-instant
+      api_key: os.environ/GROQ_API_KEY
+      max_completion_tokens: 8192
+
+  - model_name: groq/qwen3-32b
+    litellm_params:
+      model: groq/qwen/qwen3-32b
+      api_key: os.environ/GROQ_API_KEY
+      max_completion_tokens: 8192
+
+  - model_name: groq/llama-4-scout-17b
+    litellm_params:
+      model: groq/meta-llama/llama-4-scout-17b-16e-instruct
+      api_key: os.environ/GROQ_API_KEY
+      max_completion_tokens: 8192
+
+  - model_name: gemini/gemini-1.5-flash
+    litellm_params:
+      model: gemini/gemini-1.5-flash
+      api_key: os.environ/GEMINI_API_KEY
+
+  - model_name: mistral/mistral-small-latest
+    litellm_params:
+      model: mistral/mistral-small-latest
+      api_key: os.environ/MISTRAL_API_KEY
+
+  - model_name: cohere/command-r
+    litellm_params:
+      model: cohere/command-r
+      api_key: os.environ/COHERE_API_KEY
+
+litellm_settings:
+  fallbacks:
+    - groq/llama-3.1-8b-instant:
+        - gemini/gemini-1.5-flash
+        - mistral/mistral-small-latest
+    - groq/llama-3.3-70b-versatile:
+        - gemini/gemini-1.5-flash
+        - cohere/command-r

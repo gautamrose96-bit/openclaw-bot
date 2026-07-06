@@ -80,8 +80,7 @@ python3 bot.py
 | LLaMA 3.3 70B | `/model llama-3.3-70b` | Groq |
 | Qwen 3 32B | `/model qwen3-32b` | Groq |
 | LLaMA 4 Scout 17B | `/model llama4-scout` | Groq |
-| Gemini 2.0 Flash | `/model gemini-flash` | Google |
-| Gemini 2.0 Flash Lite | `/model gemini-flash-lite` | Google |
+| Gemini 1.5 Flash | `/model gemini-flash` | Google |
 | Mistral Small | `/model mistral-small` | Mistral |
 | Command R | `/model command-r` | Cohere |
 | HF LLaMA 3.1 8B | `/model hf-llama` | HuggingFace |

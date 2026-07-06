@@ -156,12 +156,21 @@ class AIClient:
         logger.error("All providers/models failed for chat %s", chat_id)
         raise last_error  # type: ignore[misc]
 
+    def _get_model_max_tokens(self, provider: str, model: str) -> int:
+        """Return the model-specific max_completion_tokens, falling back to the global default."""
+        prov = config.PROVIDERS.get(provider, {})
+        for info in prov.get("models", {}).values():
+            if info["id"] == model:
+                return info.get("max_completion_tokens", config.MAX_RESPONSE_TOKENS)
+        return config.MAX_RESPONSE_TOKENS
+
     async def _call_provider(self, provider: str, model: str, messages: list[dict]) -> str:
         client = self._clients[provider]
+        max_tokens = self._get_model_max_tokens(provider, model)
         response = await client.chat.completions.create(
             model=model,
             messages=messages,
-            max_tokens=config.MAX_RESPONSE_TOKENS,
+            max_tokens=max_tokens,
             temperature=0.7,
         )
         self._provider_requests[provider] = self._provider_requests.get(provider, 0) + 1
