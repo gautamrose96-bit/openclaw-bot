@@ -10,6 +10,7 @@ from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, fil
 import config
 from handlers import (
     calculate_command,
+    changelog_command,
     google_command,
     help_command,
     imagine_command,
@@ -25,6 +26,7 @@ from handlers import (
     summarize_command,
     tokens_command,
     translate_command,
+    version_command,
     weather_command,
 )
 from services import AIClient, start_health_server, self_ping_loop
@@ -32,6 +34,26 @@ from utils import get_logger
 from utils.error_handler import handle_error
 
 logger = get_logger("bot")
+
+
+def _alert_admin(message: str) -> None:
+    """Best-effort crash alert to the admin chat (no-op if ADMIN_CHAT_ID unset)."""
+    if not config.ADMIN_CHAT_ID:
+        return
+    import json
+    import urllib.request
+
+    url = f"https://api.telegram.org/bot{config.TELEGRAM_BOT_TOKEN}/sendMessage"
+    data = json.dumps(
+        {"chat_id": config.ADMIN_CHAT_ID, "text": f"⚠️ {message}"}
+    ).encode()
+    try:
+        req = urllib.request.Request(
+            url, data=data, headers={"Content-Type": "application/json"}
+        )
+        urllib.request.urlopen(req, timeout=10)
+    except Exception:
+        logger.warning("Failed to send admin crash alert")
 
 
 async def post_init(app) -> None:
@@ -53,6 +75,8 @@ def _build_app(ai_client: AIClient):
     app.add_handler(CommandHandler("model", model_command))
     app.add_handler(CommandHandler("models", models_command))
     app.add_handler(CommandHandler("status", status_command))
+    app.add_handler(CommandHandler("version", version_command))
+    app.add_handler(CommandHandler("changelog", changelog_command))
     app.add_handler(CommandHandler("tokens", tokens_command))
     app.add_handler(CommandHandler("reset", reset_command))
     app.add_handler(CommandHandler("restart", restart_command))
@@ -105,9 +129,10 @@ def main() -> None:
                 app = _build_app(ai_client)
                 app.run_polling(drop_pending_updates=True)
                 break
-            except Exception:
-                logger.exception("Bot error. Restarting in 10s...")
-                time.sleep(10)
+            except Exception as exc:
+                logger.exception("Bot error. Restarting in 5s...")
+                _alert_admin(f"Bot crashed and is restarting in 5s: {exc}")
+                time.sleep(5)
 
 
 if __name__ == "__main__":

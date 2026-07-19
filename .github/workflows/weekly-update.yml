@@ -1,0 +1,86 @@
+name: Weekly Auto-Update
+
+# Every Sunday: discover new free models, bump dependencies conservatively,
+# run tests, and push if everything is green. The push auto-restarts the bot
+# (run-bot.yml checks out fresh main), so it always runs the latest everything.
+# On failure, a GitHub issue is opened so the maintainer is alerted.
+
+on:
+  schedule:
+    - cron: "0 5 * * 0"  # Sundays at 05:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+  issues: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install deps
+        run: pip install -r requirements.txt ruff
+
+      - name: Discover latest free models
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: python scripts/sync_models.py
+
+      - name: Bump dependencies to latest (tests gate the commit)
+        run: |
+          pip install -U pip
+          python - <<'PY'
+          import re
+          names = []
+          for line in open("requirements.txt"):
+              s = line.strip()
+              if s and not s.startswith("#"):
+                  names.append(re.split(r"[<>=!~]", s, 1)[0])
+          open("requirements.names", "w").write("\n".join(names) + "\n")
+          print("Packages:", names)
+          PY
+          # Upgrade each package to its newest release.
+          pip install -U $(tr '\n' ' ' < requirements.names)
+          python - <<'PY'
+          import subprocess
+          names = [n for n in open("requirements.names").read().split() if n]
+          frozen = subprocess.check_output(["pip", "freeze"]).decode().splitlines()
+          fmap = {p.split("==")[0].lower(): p for p in frozen if "==" in p}
+          out = [fmap.get(n.lower(), n) for n in names]
+          open("requirements.txt", "w").write("\n".join(out) + "\n")
+          print("Updated requirements.txt:\n" + "\n".join(out))
+          PY
+          rm -f requirements.names
+
+      - name: Run tests
+        run: |
+          ruff check .
+          TELEGRAM_BOT_TOKEN=dummy GROQ_API_KEY=dummy python -c "import config, bot; print('Import OK')"
+
+      - name: Commit & push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ -n "$(git status --porcelain)" ]; then
+            git add -A
+            git commit -m "chore: weekly auto-update (models + dependencies)"
+            git push
+            echo "Pushed updates."
+          else
+            echo "Nothing to update."
+          fi
+
+      - name: Open issue on failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue create \
+            --title "Weekly auto-update failed ($(date -u +%Y-%m-%d))" \
+            --body "The weekly auto-update workflow failed. See the run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

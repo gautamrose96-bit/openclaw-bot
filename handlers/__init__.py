@@ -1,5 +1,6 @@
 from handlers.commands import (
     calculate_command,
+    changelog_command,
     google_command,
     help_command,
     imagine_command,
@@ -14,6 +15,7 @@ from handlers.commands import (
     summarize_command,
     tokens_command,
     translate_command,
+    version_command,
     weather_command,
 )
 from handlers.messages import message_handler
@@ -26,6 +28,8 @@ __all__ = [
     "reset_command",
     "restart_command",
     "status_command",
+    "version_command",
+    "changelog_command",
     "tokens_command",
     "search_command",
     "google_command",

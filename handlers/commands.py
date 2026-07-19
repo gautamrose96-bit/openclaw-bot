@@ -21,6 +21,8 @@ HELP_TEXT = (
     "/model   - Switch AI model\n"
     "/models  - List all available models\n"
     "/status  - Bot health and uptime\n"
+    "/version - Version, last update, providers\n"
+    "/changelog - What's new\n"
     "/tokens  - Show provider usage stats\n"
     "/reset   - Clear conversation history\n"
     "/restart - Restart the bot\n\n"
@@ -145,6 +147,38 @@ async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         lines.append(f"  {name}: {status} ({reqs} reqs)")
 
     await safe_reply(update, "\n".join(lines))
+
+
+async def version_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    ai_client: AIClient = context.bot_data["ai_client"]
+    healthy = ai_client.get_healthy_providers()
+    enabled = config.get_enabled_providers()
+    models = config.get_all_models()
+
+    lines = [
+        f"OpenClaw Bot v{config.VERSION}",
+        f"  Last model update: {config.LAST_UPDATE}",
+        f"  Uptime: {_uptime_str()}",
+        f"  Models available: {len(models)}",
+        "",
+        "Providers:",
+    ]
+    for prov in enabled:
+        status = "OK" if prov in healthy else "COOLDOWN"
+        name = config.PROVIDERS[prov]["name"]
+        lines.append(f"  {name}: {status}")
+    await safe_reply(update, "\n".join(lines))
+
+
+async def changelog_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "CHANGELOG.md")
+    try:
+        with open(path) as f:
+            text = f.read()
+    except OSError:
+        text = "No changelog available yet."
+    # Show the most recent ~2000 chars so it fits comfortably.
+    await safe_reply(update, text[:2000])
 
 
 async def tokens_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
