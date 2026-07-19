@@ -64,6 +64,7 @@ jobs:
           TELEGRAM_BOT_TOKEN=dummy GROQ_API_KEY=dummy python -c "import config, bot; print('Import OK')"
 
       - name: Commit & push if changed
+        id: commit
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -71,10 +72,19 @@ jobs:
             git add -A
             git commit -m "chore: weekly auto-update (models + dependencies)"
             git push
+            echo "pushed=true" >> "$GITHUB_OUTPUT"
             echo "Pushed updates."
           else
             echo "Nothing to update."
           fi
+
+      # Pushes made with GITHUB_TOKEN don't trigger other workflows, so restart
+      # the 24/7 runner explicitly to pick up the new models/deps.
+      - name: Restart bot with latest code
+        if: steps.commit.outputs.pushed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run run-bot.yml --ref main
 
       - name: Open issue on failure
         if: failure()
