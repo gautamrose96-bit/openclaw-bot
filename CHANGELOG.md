@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.0
+- Added free providers: DeepSeek, Cerebras, Qwen (DashScope), Moonshot/Kimi, Zhipu GLM, SiliconFlow, Together AI
+- Added OpenRouter free models: Phi-3 Mini 128k, Hermes 3 405B
+- Explicit fallback priority order (Groq → Cerebras → DeepSeek → OpenRouter → Qwen → Together → Kimi → … → Pollinations)
+- `/version` now reads a `VERSION` file
+- Auto key detection: only providers with a key set are enabled
+
 ## 2026-07-19
 - Added model `openrouter:tencent/hy3:free`
 - Added model `openrouter:poolside/laguna-xs-2.1:free`
