@@ -268,6 +268,11 @@ PROVIDERS = {
         "key": MOONSHOT_API_KEY,
         "base_url": "https://api.moonshot.cn/v1",
         "models": {
+            "kimi-k3": {
+                "id": "kimi-k3",
+                "name": "Kimi K3",
+                "description": "Latest large Kimi model",
+            },
             "moonshot-v1-8k": {
                 "id": "moonshot-v1-8k",
                 "name": "Moonshot v1 8k",
