@@ -21,13 +21,15 @@ GOOGLE_CSE_ID = os.getenv("GOOGLE_CSE_ID", "")
 
 # ── Defaults ──
 DEFAULT_PROVIDER = os.getenv("DEFAULT_PROVIDER", "groq")
-DEFAULT_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+DEFAULT_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
 MAX_CONTEXT_MESSAGES = int(os.getenv("MAX_CONTEXT_MESSAGES", "20"))
-MAX_RESPONSE_TOKENS = int(os.getenv("MAX_RESPONSE_TOKENS", "2048"))
+MAX_RESPONSE_TOKENS = int(os.getenv("MAX_RESPONSE_TOKENS", "700"))
+# Per-request timeout (seconds). If a model is slower, fall back to a faster one.
+REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT", "10"))
 SYSTEM_PROMPT = os.getenv(
     "SYSTEM_PROMPT",
     "You are OpenClaw Bot, a helpful AI assistant. "
-    "Answer questions clearly and concisely.",
+    "Answer clearly and concisely, keeping responses under 500 words.",
 )
 
 # ── Health check ──
@@ -44,16 +46,16 @@ PROVIDERS = {
         "key": GROQ_API_KEY,
         "base_url": "https://api.groq.com/openai/v1",
         "models": {
-            "llama-3.3-70b": {
-                "id": "llama-3.3-70b-versatile",
-                "name": "LLaMA 3.3 70B",
-                "description": "Most capable, default model",
-                "max_completion_tokens": 8192,
-            },
             "llama-3.1-8b": {
                 "id": "llama-3.1-8b-instant",
                 "name": "LLaMA 3.1 8B",
-                "description": "Fast, efficient fallback",
+                "description": "Fastest, default model",
+                "max_completion_tokens": 8192,
+            },
+            "llama-3.3-70b": {
+                "id": "llama-3.3-70b-versatile",
+                "name": "LLaMA 3.3 70B",
+                "description": "Most capable, slower",
                 "max_completion_tokens": 8192,
             },
             "qwen3-32b": {

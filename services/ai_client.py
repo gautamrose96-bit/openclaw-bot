@@ -1,5 +1,6 @@
 """Multi-provider AI client with automatic fallback and rate-limit rotation."""
 
+import asyncio
 import time
 
 from openai import AsyncOpenAI
@@ -57,6 +58,9 @@ class AIClient:
             result.append(preferred)
         result.extend(healthy)
         result.extend(cooldown)
+        # Keyless Pollinations is the slowest: always try it last.
+        if "pollinations" in result:
+            result.append(result.pop(result.index("pollinations")))
         return result
 
     def _get_models_for_provider(self, provider: str, preferred_model: str) -> list[str]:
@@ -140,7 +144,10 @@ class AIClient:
                 except Exception as exc:
                     last_error = exc
                     err_str = str(exc)
-                    if "rate_limit" in err_str or "429" in err_str:
+                    if isinstance(exc, (asyncio.TimeoutError, TimeoutError)):
+                        self._model_failures[model] = time.time()
+                        logger.warning("Model %s timed out, trying faster model", model)
+                    elif "rate_limit" in err_str or "429" in err_str:
                         self._model_failures[model] = time.time()
                         logger.warning("Model %s rate-limited, trying next", model)
                     else:
@@ -185,11 +192,14 @@ class AIClient:
     async def _call_provider(self, provider: str, model: str, messages: list[dict]) -> str:
         client = self._clients[provider]
         max_tokens = self._get_model_max_tokens(provider, model)
-        response = await client.chat.completions.create(
-            model=model,
-            messages=messages,
-            max_tokens=max_tokens,
-            temperature=0.7,
+        response = await asyncio.wait_for(
+            client.chat.completions.create(
+                model=model,
+                messages=messages,
+                max_tokens=max_tokens,
+                temperature=0.7,
+            ),
+            timeout=config.REQUEST_TIMEOUT,
         )
         self._provider_requests[provider] = self._provider_requests.get(provider, 0) + 1
         self._provider_failures.pop(provider, None)

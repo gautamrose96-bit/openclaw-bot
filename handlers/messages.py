@@ -36,6 +36,7 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             logger.exception("Auto-search failed for chat %s; falling back to chat", chat_id)
 
     try:
+        await context.bot.send_chat_action(chat_id, ChatAction.TYPING)
         reply = await ai_client.chat(chat_id, user_text)
         if not reply:
             reply = "I received an empty response. Please try again."
