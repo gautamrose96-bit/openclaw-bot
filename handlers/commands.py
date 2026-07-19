@@ -1,8 +1,10 @@
 import os
 import sys
 import time
+from io import BytesIO
 
 from telegram import Update
+from telegram.constants import ChatAction
 from telegram.ext import ContextTypes
 
 import config
@@ -251,10 +253,23 @@ async def imagine_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     if not prompt:
         await safe_reply(update, "Usage: /imagine <prompt>")
         return
-    url = tools.image_url(prompt)
     message = update.effective_message
+    chat = update.effective_chat
+    if chat:
+        await context.bot.send_chat_action(chat.id, ChatAction.UPLOAD_PHOTO)
+
+    data = await tools.fetch_image(prompt)
+    if data is None:
+        await safe_reply(
+            update,
+            "Image generation failed (Pollinations was unavailable). "
+            f"Try again, or open:\n{tools.image_url(prompt)}",
+        )
+        return
     try:
-        await message.reply_photo(photo=url, caption=f"/imagine {prompt}")
+        await message.reply_photo(
+            photo=BytesIO(data), caption=f"/imagine {prompt}"
+        )
     except Exception as exc:
         logger.error("Image send failed: %s", exc)
-        await safe_reply(update, f"Could not generate image. Direct link:\n{url}")
+        await safe_reply(update, f"Could not send image. Direct link:\n{tools.image_url(prompt)}")
