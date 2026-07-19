@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-07-19
+- Added model `openrouter:tencent/hy3:free`
+- Added model `openrouter:poolside/laguna-xs-2.1:free`
+- Added model `openrouter:cohere/north-mini-code:free`
+- Added model `openrouter:nvidia/nemotron-3.5-content-safety:free`
+- Added model `openrouter:nvidia/nemotron-3-ultra-550b-a55b:free`
+- Added model `openrouter:nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free`
+- Added model `openrouter:poolside/laguna-m.1:free`
+- Added model `openrouter:google/gemma-4-26b-a4b-it:free`
+- Added model `openrouter:google/gemma-4-31b-it:free`
+- Added model `openrouter:nvidia/nemotron-3-super-120b-a12b:free`
+- Added model `openrouter:nvidia/nemotron-3-nano-30b-a3b:free`
+- Added model `openrouter:nvidia/nemotron-nano-12b-v2-vl:free`
+- Added model `openrouter:nvidia/nemotron-nano-9b-v2:free`
+- Added model `openrouter:openai/gpt-oss-20b:free`
+
 ## 1.1.0
 - Auto-update system: weekly workflow discovers new free Groq/OpenRouter models
 - `/version` and `/changelog` commands

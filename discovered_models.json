@@ -1,7 +1,78 @@
 {
-  "updated": "",
+  "updated": "2026-07-19",
   "providers": {
     "groq": [],
-    "openrouter": []
+    "openrouter": [
+      {
+        "id": "tencent/hy3:free",
+        "name": "Tencent: Hy3 (free)",
+        "description": "Free via OpenRouter (auto-discovered)"
+      },
+      {
+        "id": "poolside/laguna-xs-2.1:free",
+        "name": "Poolside: Laguna XS 2.1 (free)",
+        "description": "Free via OpenRouter (auto-discovered)"
+      },
+      {
+        "id": "cohere/north-mini-code:free",
+        "name": "Cohere: North Mini Code (free)",
+        "description": "Free via OpenRouter (auto-discovered)"
+      },
+      {
+        "id": "nvidia/nemotron-3.5-content-safety:free",
+        "name": "NVIDIA: Nemotron 3.5 Content Safety (free)",
+        "description": "Free via OpenRouter (auto-discovered)"
+      },
+      {
+        "id": "nvidia/nemotron-3-ultra-550b-a55b:free",
+        "name": "NVIDIA: Nemotron 3 Ultra (free)",
+        "description": "Free via OpenRouter (auto-discovered)"
+      },
+      {
+        "id": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+        "name": "NVIDIA: Nemotron 3 Nano Omni (free)",
+        "description": "Free via OpenRouter (auto-discovered)"
+      },
+      {
+        "id": "poolside/laguna-m.1:free",
+        "name": "Poolside: Laguna M.1 (free)",
+        "description": "Free via OpenRouter (auto-discovered)"
+      },
+      {
+        "id": "google/gemma-4-26b-a4b-it:free",
+        "name": "Google: Gemma 4 26B A4B  (free)",
+        "description": "Free via OpenRouter (auto-discovered)"
+      },
+      {
+        "id": "google/gemma-4-31b-it:free",
+        "name": "Google: Gemma 4 31B (free)",
+        "description": "Free via OpenRouter (auto-discovered)"
+      },
+      {
+        "id": "nvidia/nemotron-3-super-120b-a12b:free",
+        "name": "NVIDIA: Nemotron 3 Super (free)",
+        "description": "Free via OpenRouter (auto-discovered)"
+      },
+      {
+        "id": "nvidia/nemotron-3-nano-30b-a3b:free",
+        "name": "NVIDIA: Nemotron 3 Nano 30B A3B (free)",
+        "description": "Free via OpenRouter (auto-discovered)"
+      },
+      {
+        "id": "nvidia/nemotron-nano-12b-v2-vl:free",
+        "name": "NVIDIA: Nemotron Nano 12B 2 VL (free)",
+        "description": "Free via OpenRouter (auto-discovered)"
+      },
+      {
+        "id": "nvidia/nemotron-nano-9b-v2:free",
+        "name": "NVIDIA: Nemotron Nano 9B V2 (free)",
+        "description": "Free via OpenRouter (auto-discovered)"
+      },
+      {
+        "id": "openai/gpt-oss-20b:free",
+        "name": "OpenAI: gpt-oss-20b (free)",
+        "description": "Free via OpenRouter (auto-discovered)"
+      }
+    ]
   }
 }
