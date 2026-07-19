@@ -32,6 +32,8 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         await safe_reply(
             update,
             f"{USER_ERROR_MESSAGE}\n\n"
-            "All AI providers are temporarily unavailable. "
-            "The bot will auto-retry shortly.",
+            "All AI providers are temporarily unavailable (rate-limited).\n"
+            "These commands still work — they don't need AI:\n"
+            "/weather <city> · /calculate <expr> · /search <query> · "
+            "/news <topic> · /imagine <prompt>",
         )

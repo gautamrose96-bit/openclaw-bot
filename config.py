@@ -137,6 +137,11 @@ PROVIDERS = {
                 "name": "OR LLaMA 3.3 70B",
                 "description": "Free via OpenRouter",
             },
+            "or-llama-8b": {
+                "id": "meta-llama/llama-3.1-8b-instruct:free",
+                "name": "OR LLaMA 3.1 8B",
+                "description": "Free via OpenRouter",
+            },
             "or-gemma": {
                 "id": "google/gemma-2-9b-it:free",
                 "name": "OR Gemma 2 9B",
