@@ -1,7 +1,10 @@
 # Koyeb - Truly free forever, no credit card
 # Deploy: https://app.koyeb.com/deploy?name=openclaw-bot&type=git&repository=github.com/gautamrose96-bit/openclaw-bot&branch=main&builder=dockerfile&instance_type=free
 name: openclaw-bot
-type: worker
+# 'web' (not 'worker'): the bot runs in polling mode and also serves an HTTP
+# /health endpoint on port 8080. Worker services expose no port, so their HTTP
+# health check and keep-alive pings can never succeed.
+type: web
 instance_types:
   - type: free
 regions:
@@ -16,6 +19,9 @@ env:
     value: ""
   - key: HEALTH_PORT
     value: "8080"
+ports:
+  - port: 8080
+    protocol: http
 build:
   type: dockerfile
   dockerfile:
