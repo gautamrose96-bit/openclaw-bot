@@ -38,3 +38,6 @@ node_modules/
 
 # Linter cache
 .ruff_cache/
+
+# Conversation memory (runtime data)
+data/

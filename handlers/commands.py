@@ -6,6 +6,7 @@ from telegram import Update
 from telegram.ext import ContextTypes
 
 import config
+from services import tools
 from services.ai_client import AIClient
 from utils import get_logger, safe_reply
 
@@ -21,6 +22,14 @@ HELP_TEXT = (
     "/tokens  - Show provider usage stats\n"
     "/reset   - Clear conversation history\n"
     "/restart - Restart the bot\n\n"
+    "Smart tools:\n"
+    "/search [query]     - Web search (DuckDuckGo)\n"
+    "/weather [city]     - Current weather\n"
+    "/news [topic]       - Latest headlines\n"
+    "/translate [text]   - Translate to English\n"
+    "/summarize [text]   - Summarize text\n"
+    "/calculate [expr]   - Evaluate math\n"
+    "/imagine [prompt]   - Generate an image\n\n"
     "Send any message to chat with AI!"
 )
 
@@ -168,3 +177,84 @@ async def restart_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     logger.info("Restart requested by user %s", update.effective_user.id)
     await safe_reply(update, "Restarting bot... I'll be back in a few seconds!")
     os.execv(sys.executable, [sys.executable] + sys.argv)
+
+
+def _arg_text(context: ContextTypes.DEFAULT_TYPE) -> str:
+    return " ".join(context.args).strip() if context.args else ""
+
+
+async def search_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = _arg_text(context)
+    if not query:
+        await safe_reply(update, "Usage: /search <query>")
+        return
+    await safe_reply(update, await tools.ddg_search(query))
+
+
+async def weather_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    city = _arg_text(context)
+    if not city:
+        await safe_reply(update, "Usage: /weather <city>")
+        return
+    await safe_reply(update, await tools.get_weather(city))
+
+
+async def news_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    topic = _arg_text(context)
+    if not topic:
+        await safe_reply(update, "Usage: /news <topic>")
+        return
+    await safe_reply(update, await tools.get_news(topic))
+
+
+async def calculate_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    expr = _arg_text(context)
+    if not expr:
+        await safe_reply(update, "Usage: /calculate <expression>  e.g. /calculate 2*(3+4)")
+        return
+    await safe_reply(update, tools.calculate(expr))
+
+
+async def translate_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    text = _arg_text(context)
+    if not text:
+        await safe_reply(update, "Usage: /translate <text>")
+        return
+    ai_client: AIClient = context.bot_data["ai_client"]
+    chat_id = update.effective_chat.id
+    reply = await ai_client.complete(
+        chat_id,
+        text,
+        system="You are a translator. Translate the user's text to English. "
+        "If it is already English, translate it to Spanish. Reply with only the translation.",
+    )
+    await safe_reply(update, reply)
+
+
+async def summarize_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    text = _arg_text(context)
+    if not text:
+        await safe_reply(update, "Usage: /summarize <text>")
+        return
+    ai_client: AIClient = context.bot_data["ai_client"]
+    chat_id = update.effective_chat.id
+    reply = await ai_client.complete(
+        chat_id,
+        text,
+        system="Summarize the user's text concisely in a few bullet points.",
+    )
+    await safe_reply(update, reply)
+
+
+async def imagine_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    prompt = _arg_text(context)
+    if not prompt:
+        await safe_reply(update, "Usage: /imagine <prompt>")
+        return
+    url = tools.image_url(prompt)
+    message = update.effective_message
+    try:
+        await message.reply_photo(photo=url, caption=f"/imagine {prompt}")
+    except Exception as exc:
+        logger.error("Image send failed: %s", exc)
+        await safe_reply(update, f"Could not generate image. Direct link:\n{url}")

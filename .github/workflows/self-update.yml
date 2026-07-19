@@ -1,0 +1,32 @@
+name: Self-Update & Restart
+
+# Daily: verify the latest code on main, then restart the 24/7 runner so it
+# picks up the newest code and model list. The run-bot workflow always checks
+# out fresh main, so restarting == auto-pulling the latest version.
+
+on:
+  schedule:
+    - cron: "0 6 * * *"  # every day at 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  self-update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify latest code
+        run: |
+          pip install -r requirements.txt ruff
+          ruff check .
+          python -c "import config, bot; print('Import OK')"
+      - name: Restart bot with latest code
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run run-bot.yml --ref main
