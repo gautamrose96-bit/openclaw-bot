@@ -106,6 +106,33 @@ def image_url(prompt: str) -> str:
     )
 
 
+# Pollinations generation can take a while, so allow a generous timeout.
+_IMAGE_TIMEOUT = aiohttp.ClientTimeout(total=90)
+
+
+async def fetch_image(prompt: str, attempts: int = 3) -> bytes | None:
+    """Download a generated image from Pollinations as raw bytes (no key).
+
+    Returns the image bytes, or None if generation failed after retries.
+    """
+    url = image_url(prompt)
+    for attempt in range(1, attempts + 1):
+        try:
+            async with aiohttp.ClientSession(timeout=_IMAGE_TIMEOUT, headers=_UA) as s:
+                async with s.get(url) as r:
+                    data = await r.read()
+                    ctype = r.headers.get("Content-Type", "")
+                    if r.status == 200 and ctype.startswith("image/") and data:
+                        return data
+                    logger.warning(
+                        "Pollinations attempt %d: status=%s type=%s len=%d",
+                        attempt, r.status, ctype, len(data),
+                    )
+        except Exception as exc:
+            logger.warning("Pollinations attempt %d failed: %s", attempt, exc)
+    return None
+
+
 # ── Safe calculator ──
 _OPS = {
     ast.Add: operator.add,
