@@ -1,11 +1,21 @@
+import json
 import os
+
 from dotenv import load_dotenv
 
 load_dotenv()
 
 # ── Core ──
+VERSION = "1.1.0"
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 BOT_START_TIME = 0.0  # set at runtime
+# Optional chat ID that receives crash alerts (see /version, self-healing).
+ADMIN_CHAT_ID = os.getenv("ADMIN_CHAT_ID", "")
+
+# Models auto-discovered by the weekly update workflow (scripts/sync_models.py).
+DISCOVERED_MODELS_PATH = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "discovered_models.json"
+)
 
 # ── API Keys (all optional; providers with keys get enabled) ──
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
@@ -179,6 +189,44 @@ PROVIDERS = {
         },
     },
 }
+
+
+LAST_UPDATE = "unknown"
+
+
+def _load_discovered() -> dict:
+    try:
+        with open(DISCOVERED_MODELS_PATH) as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError, OSError):
+        return {}
+
+
+def _merge_discovered_models() -> None:
+    """Merge models auto-discovered by the weekly workflow into the registry."""
+    global LAST_UPDATE
+    data = _load_discovered()
+    LAST_UPDATE = data.get("updated", "unknown")
+    for prov_name, models in data.get("providers", {}).items():
+        prov = PROVIDERS.get(prov_name)
+        if not prov:
+            continue
+        existing_ids = {m["id"] for m in prov["models"].values()}
+        for m in models:
+            mid = m.get("id")
+            if not mid or mid in existing_ids:
+                continue
+            short = mid.split("/")[-1][:40]
+            prov["models"][short] = {
+                "id": mid,
+                "name": m.get("name", mid),
+                "description": m.get("description", "Auto-discovered model"),
+                "max_completion_tokens": m.get("max_completion_tokens", 8192),
+            }
+            existing_ids.add(mid)
+
+
+_merge_discovered_models()
 
 
 def get_enabled_providers() -> list[str]:
