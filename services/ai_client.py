@@ -40,8 +40,14 @@ class AIClient:
             self._provider_requests[prov_name] = 0
             logger.info("Enabled provider: %s (%s)", prov["name"], prov_name)
 
+    def _priority_rank(self, name: str) -> int:
+        """Position of a provider in the configured fallback priority list."""
+        order = config.PROVIDER_PRIORITY
+        return order.index(name) if name in order else len(order)
+
     def _get_provider_order(self, preferred: str) -> list[str]:
-        """Return providers sorted: preferred first, then healthy, failed last."""
+        """Return providers: preferred first, then healthy by priority, cooldown
+        last. Keyless Pollinations is always the very last resort."""
         now = time.time()
         healthy = []
         cooldown = []
@@ -53,6 +59,8 @@ class AIClient:
                 healthy.append(name)
             else:
                 cooldown.append(name)
+        healthy.sort(key=self._priority_rank)
+        cooldown.sort(key=self._priority_rank)
         result = []
         if preferred in self._clients:
             result.append(preferred)
