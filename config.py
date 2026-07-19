@@ -15,6 +15,10 @@ COHERE_API_KEY = os.getenv("COHERE_API_KEY", "")
 HF_API_KEY = os.getenv("HF_API_KEY", "")
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 
+# ── Optional Google Custom Search (100 free searches/day) ──
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
+GOOGLE_CSE_ID = os.getenv("GOOGLE_CSE_ID", "")
+
 # ── Defaults ──
 DEFAULT_PROVIDER = os.getenv("DEFAULT_PROVIDER", "groq")
 DEFAULT_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")

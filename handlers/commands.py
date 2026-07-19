@@ -25,7 +25,8 @@ HELP_TEXT = (
     "/reset   - Clear conversation history\n"
     "/restart - Restart the bot\n\n"
     "Smart tools:\n"
-    "/search [query]     - Web search (DuckDuckGo)\n"
+    "/search [query]     - Web search + AI answer (DuckDuckGo)\n"
+    "/google [query]     - Web search (Google if configured)\n"
     "/weather [city]     - Current weather\n"
     "/news [topic]       - Latest headlines\n"
     "/translate [text]   - Translate to English\n"
@@ -185,12 +186,64 @@ def _arg_text(context: ContextTypes.DEFAULT_TYPE) -> str:
     return " ".join(context.args).strip() if context.args else ""
 
 
+async def search_answer(ai_client: AIClient, chat_id: int, query: str, prefer_google: bool = False) -> str:
+    """Run a real web search and have the AI summarize the results with links.
+
+    Never fully fails: returns raw results if the AI is unavailable, and a news
+    fallback if search returns nothing.
+    """
+    results = []
+    if prefer_google:
+        results = await tools.google_search(query)
+    if not results:
+        results = await tools.web_search(query)
+    if not results:
+        return await tools.get_news(query)  # RSS backup
+
+    context_str = tools.format_results(results)
+    links = "\n".join(f"• {r['title']}: {r['href']}" for r in results[:3] if r["href"])
+    try:
+        answer = await ai_client.complete(
+            chat_id,
+            f"Question: {query}\n\nReal-time web search results:\n{context_str}\n\n"
+            "Answer the question using ONLY these results. Be concise and factual.",
+            system="You answer questions using the provided web search results. "
+            "Summarize clearly; do not invent facts beyond the results.",
+        )
+    except Exception:
+        answer = context_str  # AI down: return raw results
+    return f"{answer}\n\nSources:\n{links}" if links else answer
+
+
 async def search_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = _arg_text(context)
     if not query:
         await safe_reply(update, "Usage: /search <query>")
         return
-    await safe_reply(update, await tools.ddg_search(query))
+    ai_client: AIClient = context.bot_data["ai_client"]
+    if update.effective_chat:
+        await context.bot.send_chat_action(update.effective_chat.id, ChatAction.TYPING)
+    await safe_reply(update, await search_answer(ai_client, update.effective_chat.id, query))
+
+
+async def google_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = _arg_text(context)
+    if not query:
+        await safe_reply(update, "Usage: /google <query>")
+        return
+    if not (config.GOOGLE_API_KEY and config.GOOGLE_CSE_ID):
+        await safe_reply(
+            update,
+            "Google search isn't configured (needs GOOGLE_API_KEY + GOOGLE_CSE_ID). "
+            "Using DuckDuckGo instead:",
+        )
+    ai_client: AIClient = context.bot_data["ai_client"]
+    if update.effective_chat:
+        await context.bot.send_chat_action(update.effective_chat.id, ChatAction.TYPING)
+    await safe_reply(
+        update,
+        await search_answer(ai_client, update.effective_chat.id, query, prefer_google=True),
+    )
 
 
 async def weather_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

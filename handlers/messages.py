@@ -1,6 +1,9 @@
 from telegram import Update
+from telegram.constants import ChatAction
 from telegram.ext import ContextTypes
 
+from handlers.commands import search_answer
+from services import tools
 from services.ai_client import AIClient
 from utils import get_logger, safe_reply
 from utils.error_handler import USER_ERROR_MESSAGE
@@ -21,6 +24,16 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     logger.info("Message from user %s in chat %s", user_id, chat_id)
 
     ai_client: AIClient = context.bot_data["ai_client"]
+
+    # Current-events questions: search the web first, then let the AI answer.
+    if tools.needs_web_search(user_text):
+        try:
+            await context.bot.send_chat_action(chat_id, ChatAction.TYPING)
+            reply = await search_answer(ai_client, chat_id, user_text)
+            await safe_reply(update, reply)
+            return
+        except Exception:
+            logger.exception("Auto-search failed for chat %s; falling back to chat", chat_id)
 
     try:
         reply = await ai_client.chat(chat_id, user_text)

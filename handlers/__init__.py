@@ -1,5 +1,6 @@
 from handlers.commands import (
     calculate_command,
+    google_command,
     help_command,
     imagine_command,
     model_command,
@@ -27,6 +28,7 @@ __all__ = [
     "status_command",
     "tokens_command",
     "search_command",
+    "google_command",
     "weather_command",
     "news_command",
     "translate_command",
