@@ -9,15 +9,22 @@ from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, fil
 
 import config
 from handlers import (
+    calculate_command,
     help_command,
+    imagine_command,
     message_handler,
     model_command,
     models_command,
+    news_command,
     reset_command,
     restart_command,
+    search_command,
     start_command,
     status_command,
+    summarize_command,
     tokens_command,
+    translate_command,
+    weather_command,
 )
 from services import AIClient, start_health_server, self_ping_loop
 from utils import get_logger
@@ -48,6 +55,13 @@ def _build_app(ai_client: AIClient):
     app.add_handler(CommandHandler("tokens", tokens_command))
     app.add_handler(CommandHandler("reset", reset_command))
     app.add_handler(CommandHandler("restart", restart_command))
+    app.add_handler(CommandHandler("search", search_command))
+    app.add_handler(CommandHandler("weather", weather_command))
+    app.add_handler(CommandHandler("news", news_command))
+    app.add_handler(CommandHandler("translate", translate_command))
+    app.add_handler(CommandHandler("summarize", summarize_command))
+    app.add_handler(CommandHandler("calculate", calculate_command))
+    app.add_handler(CommandHandler("imagine", imagine_command))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
 
     app.add_error_handler(handle_error)

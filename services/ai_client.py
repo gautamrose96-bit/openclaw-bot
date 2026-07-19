@@ -5,6 +5,7 @@ import time
 from openai import AsyncOpenAI
 
 import config
+from services.memory import JSONMemory
 from utils.logger import get_logger
 
 logger = get_logger("ai_client")
@@ -17,7 +18,10 @@ class AIClient:
 
     def __init__(self) -> None:
         self._clients: dict[str, AsyncOpenAI] = {}
-        self._histories: dict[int, list[dict[str, str]]] = {}
+        self._memory = JSONMemory(config.MEMORY_PATH)
+        self._histories: dict[int, list[dict[str, str]]] = self._memory.load_all()
+        if self._histories:
+            logger.info("Loaded memory for %d chats", len(self._histories))
         self._chat_provider: dict[int, str] = {}
         self._chat_model: dict[int, str] = {}
         self._provider_failures: dict[str, float] = {}
@@ -94,6 +98,7 @@ class AIClient:
 
     def clear_history(self, chat_id: int) -> None:
         self._histories.pop(chat_id, None)
+        self._memory.save_all(self._histories)
 
     def get_stats(self) -> dict[str, int]:
         return dict(self._provider_requests)
@@ -110,16 +115,8 @@ class AIClient:
         while len(history) > max_msgs:
             history.pop(0)
 
-    async def chat(self, chat_id: int, user_message: str) -> str:
-        history = self._get_history(chat_id)
-        history.append({"role": "user", "content": user_message})
-        self._trim_history(history)
-
-        messages = [
-            {"role": "system", "content": config.SYSTEM_PROMPT},
-            *history,
-        ]
-
+    async def _generate(self, chat_id: int, messages: list[dict[str, str]]) -> str:
+        """Run one completion across providers/models with auto-fallback."""
         preferred_provider = self.get_provider(chat_id)
         preferred_model = self.get_model_id(chat_id)
         providers_to_try = self._get_provider_order(preferred_provider)
@@ -134,7 +131,6 @@ class AIClient:
             for model in models_to_try:
                 try:
                     reply = await self._call_provider(prov_name, model, messages)
-                    history.append({"role": "assistant", "content": reply})
                     if prov_name != preferred_provider or model != preferred_model:
                         logger.info(
                             "Used %s/%s for chat %s (preferred: %s/%s)",
@@ -152,9 +148,31 @@ class AIClient:
                         logger.warning("Provider %s failed: %s", prov_name, exc)
                         break  # Non-rate-limit error: skip entire provider
 
-        history.pop()
         logger.error("All providers/models failed for chat %s", chat_id)
         raise last_error  # type: ignore[misc]
+
+    async def chat(self, chat_id: int, user_message: str) -> str:
+        history = self._get_history(chat_id)
+        history.append({"role": "user", "content": user_message})
+        self._trim_history(history)
+
+        messages = [{"role": "system", "content": config.SYSTEM_PROMPT}, *history]
+        try:
+            reply = await self._generate(chat_id, messages)
+        except Exception:
+            history.pop()  # roll back the user message on total failure
+            raise
+        history.append({"role": "assistant", "content": reply})
+        self._memory.save_all(self._histories)
+        return reply
+
+    async def complete(self, chat_id: int, prompt: str, system: str | None = None) -> str:
+        """One-off completion that does NOT touch conversation memory."""
+        messages = [
+            {"role": "system", "content": system or config.SYSTEM_PROMPT},
+            {"role": "user", "content": prompt},
+        ]
+        return await self._generate(chat_id, messages)
 
     def _get_model_max_tokens(self, provider: str, model: str) -> int:
         """Return the model-specific max_completion_tokens, falling back to the global default."""

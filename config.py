@@ -17,7 +17,7 @@ OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 
 # ── Defaults ──
 DEFAULT_PROVIDER = os.getenv("DEFAULT_PROVIDER", "groq")
-DEFAULT_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
+DEFAULT_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
 MAX_CONTEXT_MESSAGES = int(os.getenv("MAX_CONTEXT_MESSAGES", "20"))
 MAX_RESPONSE_TOKENS = int(os.getenv("MAX_RESPONSE_TOKENS", "2048"))
 SYSTEM_PROMPT = os.getenv(
@@ -29,6 +29,9 @@ SYSTEM_PROMPT = os.getenv(
 # ── Health check ──
 HEALTH_PORT = int(os.getenv("HEALTH_PORT", "8080"))
 
+# ── Conversation memory (JSON file) ──
+MEMORY_PATH = os.getenv("MEMORY_PATH", "data/memory.json")
+
 # ── Provider registry ──
 # Each provider: {key_env, models: {short_name: {id, name, description}}}
 PROVIDERS = {
@@ -37,16 +40,16 @@ PROVIDERS = {
         "key": GROQ_API_KEY,
         "base_url": "https://api.groq.com/openai/v1",
         "models": {
-            "llama-3.1-8b": {
-                "id": "llama-3.1-8b-instant",
-                "name": "LLaMA 3.1 8B",
-                "description": "Fast, efficient, default model",
-                "max_completion_tokens": 8192,
-            },
             "llama-3.3-70b": {
                 "id": "llama-3.3-70b-versatile",
                 "name": "LLaMA 3.3 70B",
-                "description": "Most capable, best for complex tasks",
+                "description": "Most capable, default model",
+                "max_completion_tokens": 8192,
+            },
+            "llama-3.1-8b": {
+                "id": "llama-3.1-8b-instant",
+                "name": "LLaMA 3.1 8B",
+                "description": "Fast, efficient fallback",
                 "max_completion_tokens": 8192,
             },
             "qwen3-32b": {
@@ -81,6 +84,11 @@ PROVIDERS = {
         "key": MISTRAL_API_KEY,
         "base_url": "https://api.mistral.ai/v1",
         "models": {
+            "mistral-large": {
+                "id": "mistral-large-latest",
+                "name": "Mistral Large",
+                "description": "Most capable Mistral model",
+            },
             "mistral-small": {
                 "id": "mistral-small-latest",
                 "name": "Mistral Small",
@@ -91,8 +99,14 @@ PROVIDERS = {
     "cohere": {
         "name": "Cohere",
         "key": COHERE_API_KEY,
-        "base_url": "https://api.cohere.com/v2",
+        # Cohere's OpenAI-compatible endpoint (works with the openai SDK).
+        "base_url": "https://api.cohere.ai/compatibility/v1",
         "models": {
+            "command-r-plus": {
+                "id": "command-r-plus",
+                "name": "Command R+",
+                "description": "Cohere's most capable model",
+            },
             "command-r": {
                 "id": "command-r",
                 "name": "Command R",
@@ -103,7 +117,8 @@ PROVIDERS = {
     "huggingface": {
         "name": "HuggingFace",
         "key": HF_API_KEY,
-        "base_url": "https://api-inference.huggingface.co/v1",
+        # HuggingFace's OpenAI-compatible inference router.
+        "base_url": "https://router.huggingface.co/v1",
         "models": {
             "hf-llama": {
                 "id": "meta-llama/Llama-3.1-8B-Instruct",

@@ -1,12 +1,19 @@
 from handlers.commands import (
+    calculate_command,
     help_command,
+    imagine_command,
     model_command,
     models_command,
+    news_command,
     reset_command,
     restart_command,
+    search_command,
     start_command,
     status_command,
+    summarize_command,
     tokens_command,
+    translate_command,
+    weather_command,
 )
 from handlers.messages import message_handler
 
@@ -19,5 +26,12 @@ __all__ = [
     "restart_command",
     "status_command",
     "tokens_command",
+    "search_command",
+    "weather_command",
+    "news_command",
+    "translate_command",
+    "summarize_command",
+    "calculate_command",
+    "imagine_command",
     "message_handler",
 ]
