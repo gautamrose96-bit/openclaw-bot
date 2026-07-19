@@ -1,0 +1,29 @@
+name: Keepalive
+
+# Scheduled workflows are auto-disabled after 60 days of repo inactivity.
+# This makes a tiny monthly commit so run-bot.yml / self-update.yml stay active
+# forever. The commit uses [skip ci] so it does NOT restart the bot.
+
+on:
+  schedule:
+    - cron: "0 0 1 * *"  # 00:00 UTC on the 1st of every month
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Heartbeat commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          date -u +"%Y-%m-%dT%H:%M:%SZ" > .github/last-keepalive.txt
+          git add .github/last-keepalive.txt
+          git commit -m "chore: keepalive heartbeat [skip ci]" || {
+            echo "Nothing changed"; exit 0;
+          }
+          git push
