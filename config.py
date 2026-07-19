@@ -154,6 +154,24 @@ PROVIDERS = {
             },
         },
     },
+    # Keyless, always-on last-resort fallback so chat never fully goes down.
+    "pollinations": {
+        "name": "Pollinations",
+        "key": os.getenv("POLLINATIONS_API_KEY", "keyless"),
+        "base_url": "https://text.pollinations.ai/openai",
+        "models": {
+            "pollinations-openai": {
+                "id": "openai",
+                "name": "Pollinations (keyless)",
+                "description": "Free text AI, no API key required",
+            },
+            "pollinations-mistral": {
+                "id": "mistral",
+                "name": "Pollinations Mistral (keyless)",
+                "description": "Free Mistral via Pollinations, no key",
+            },
+        },
+    },
 }
 
 
