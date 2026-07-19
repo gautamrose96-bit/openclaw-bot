@@ -1,5 +1,6 @@
 """Free, no-API-key tools: web search, weather, news, image gen, calculator."""
 
+import asyncio
 import ast
 import operator
 import urllib.parse
@@ -7,6 +8,7 @@ import xml.etree.ElementTree as ET
 
 import aiohttp
 
+import config
 from utils.logger import get_logger
 
 logger = get_logger("tools")
@@ -56,6 +58,81 @@ async def ddg_search(query: str) -> str:
     if topics:
         return "Top results:\n" + "\n".join(topics)
     return f"No instant answer found for '{query}'. Try rephrasing."
+
+
+async def web_search(query: str, max_results: int = 5) -> list[dict[str, str]]:
+    """Real web search via DuckDuckGo (ddgs library, no key). Returns
+    [{title, href, body}]. Falls back to [] on failure."""
+    def _run() -> list[dict[str, str]]:
+        from ddgs import DDGS
+
+        with DDGS() as d:
+            return list(d.text(query, max_results=max_results))
+
+    try:
+        results = await asyncio.to_thread(_run)
+        return [
+            {
+                "title": r.get("title", ""),
+                "href": r.get("href", ""),
+                "body": r.get("body", ""),
+            }
+            for r in results
+        ]
+    except Exception as exc:
+        logger.warning("DuckDuckGo search failed: %s", exc)
+        return []
+
+
+async def google_search(query: str, max_results: int = 5) -> list[dict[str, str]]:
+    """Google Custom Search (needs GOOGLE_API_KEY + GOOGLE_CSE_ID). [] if unset."""
+    if not (config.GOOGLE_API_KEY and config.GOOGLE_CSE_ID):
+        return []
+    url = (
+        "https://www.googleapis.com/customsearch/v1?key="
+        + config.GOOGLE_API_KEY
+        + "&cx="
+        + config.GOOGLE_CSE_ID
+        + "&num="
+        + str(max_results)
+        + "&q="
+        + urllib.parse.quote(query)
+    )
+    try:
+        data = await _get_json(url)
+    except Exception as exc:
+        logger.warning("Google search failed: %s", exc)
+        return []
+    return [
+        {
+            "title": i.get("title", ""),
+            "href": i.get("link", ""),
+            "body": i.get("snippet", ""),
+        }
+        for i in data.get("items", [])
+    ]
+
+
+def format_results(results: list[dict[str, str]]) -> str:
+    """Render search results as a compact numbered list for an LLM/user."""
+    lines = []
+    for i, r in enumerate(results, 1):
+        lines.append(f"{i}. {r['title']}\n{r['body']}\n{r['href']}")
+    return "\n\n".join(lines)
+
+
+_SEARCH_TRIGGERS = (
+    "latest", "current", "today", "tonight", "right now", "this week",
+    "this year", "recent", "news", "price", "cost", "how much", "stock",
+    "score", "who won", "release date", "when is", "when will", "update on",
+    "202",  # any recent year like 2024/2025/2026
+)
+
+
+def needs_web_search(text: str) -> bool:
+    """Heuristic: does this question likely need fresh, real-time info?"""
+    t = text.lower()
+    return any(trigger in t for trigger in _SEARCH_TRIGGERS)
 
 
 async def get_weather(city: str) -> str:

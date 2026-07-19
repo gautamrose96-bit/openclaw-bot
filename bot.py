@@ -10,6 +10,7 @@ from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, fil
 import config
 from handlers import (
     calculate_command,
+    google_command,
     help_command,
     imagine_command,
     message_handler,
@@ -56,6 +57,7 @@ def _build_app(ai_client: AIClient):
     app.add_handler(CommandHandler("reset", reset_command))
     app.add_handler(CommandHandler("restart", restart_command))
     app.add_handler(CommandHandler("search", search_command))
+    app.add_handler(CommandHandler("google", google_command))
     app.add_handler(CommandHandler("weather", weather_command))
     app.add_handler(CommandHandler("news", news_command))
     app.add_handler(CommandHandler("translate", translate_command))
