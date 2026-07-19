@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.2.1
+- Added Kimi K3 (`kimi-k3`) model to the Moonshot provider
+
 ## 1.2.0
 - Added free providers: DeepSeek, Cerebras, Qwen (DashScope), Moonshot/Kimi, Zhipu GLM, SiliconFlow, Together AI
 - Added OpenRouter free models: Phi-3 Mini 128k, Hermes 3 405B
