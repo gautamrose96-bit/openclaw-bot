@@ -27,6 +27,13 @@ DISCOVERED_MODELS_PATH = os.path.join(
 
 # ── API Keys (all optional; providers with keys get enabled) ──
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+# GitHub Models (free with a GitHub Personal Access Token). Accepts either a
+# dedicated GITHUB_MODELS_API_KEY or a standard GITHUB_TOKEN / GH_TOKEN.
+GITHUB_MODELS_API_KEY = (
+    os.getenv("GITHUB_MODELS_API_KEY", "")
+    or os.getenv("GITHUB_TOKEN", "")
+    or os.getenv("GH_TOKEN", "")
+)
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY", "")
 COHERE_API_KEY = os.getenv("COHERE_API_KEY", "")
@@ -66,6 +73,35 @@ MEMORY_PATH = os.getenv("MEMORY_PATH", "data/memory.json")
 # ── Provider registry ──
 # Each provider: {key_env, models: {short_name: {id, name, description}}}
 PROVIDERS = {
+    # GitHub Models: free AI (GPT-4o, Llama, Mistral, DeepSeek) using just a
+    # GitHub Personal Access Token. OpenAI-compatible endpoint.
+    "github": {
+        "name": "GitHub Models",
+        "key": GITHUB_MODELS_API_KEY,
+        "base_url": "https://models.github.ai/inference",
+        "models": {
+            "gpt-4o-mini": {
+                "id": "openai/gpt-4o-mini",
+                "name": "GPT-4o mini (GitHub)",
+                "description": "Fast free GPT-4o mini via GitHub",
+            },
+            "gpt-4o": {
+                "id": "openai/gpt-4o",
+                "name": "GPT-4o (GitHub)",
+                "description": "Most capable OpenAI model, free via GitHub",
+            },
+            "github-llama-70b": {
+                "id": "meta/Llama-3.3-70B-Instruct",
+                "name": "Llama 3.3 70B (GitHub)",
+                "description": "Meta Llama 3.3 70B, free via GitHub",
+            },
+            "github-mistral": {
+                "id": "mistral-ai/Mistral-Nemo",
+                "name": "Mistral Nemo (GitHub)",
+                "description": "Mistral Nemo, free via GitHub",
+            },
+        },
+    },
     "groq": {
         "name": "Groq",
         "key": GROQ_API_KEY,
@@ -333,6 +369,7 @@ PROVIDERS = {
 # Fallback priority: try fastest/best first, keyless Pollinations always last.
 PROVIDER_PRIORITY = [
     "groq",
+    "github",
     "cerebras",
     "deepseek",
     "openrouter",

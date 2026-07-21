@@ -63,6 +63,7 @@ python3 bot.py
 | Provider | Get Free Key | Free Limit |
 |----------|-------------|------------|
 | Groq | [console.groq.com/keys](https://console.groq.com/keys) | 30 req/min |
+| **GitHub Models** | [github.com/settings/tokens](https://github.com/settings/tokens) (scope: `models`) | Free GPT-4o/Llama/Mistral |
 | Google Gemini | [aistudio.google.com/apikey](https://aistudio.google.com/apikey) | 15 req/min |
 | Mistral | [console.mistral.ai](https://console.mistral.ai/api-keys) | Free tier |
 | Cohere | [dashboard.cohere.com](https://dashboard.cohere.com/api-keys) | 20 req/min |
@@ -77,6 +78,10 @@ python3 bot.py
 | Model | Command | Provider |
 |-------|---------|----------|
 | LLaMA 3.1 8B (default) | `/model llama-3.1-8b` | Groq |
+| GPT-4o mini | `/model gpt-4o-mini` | GitHub Models |
+| GPT-4o | `/model gpt-4o` | GitHub Models |
+| Llama 3.3 70B (GitHub) | `/model github-llama-70b` | GitHub Models |
+| Mistral Nemo (GitHub) | `/model github-mistral` | GitHub Models |
 | LLaMA 3.3 70B | `/model llama-3.3-70b` | Groq |
 | Qwen 3 32B | `/model qwen3-32b` | Groq |
 | LLaMA 4 Scout 17B | `/model llama4-scout` | Groq |

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.0
+- Added **GitHub Models** provider: free GPT-4o, GPT-4o mini, Llama 3.3 70B and Mistral Nemo using only a GitHub Personal Access Token (`GITHUB_MODELS_API_KEY` / `GITHUB_TOKEN` / `GH_TOKEN`)
+- GitHub Models is placed second in the fallback priority (after Groq) for extra headroom when other providers are rate-limited
+
 ## 1.2.1
 - Added Kimi K3 (`kimi-k3`) model to the Moonshot provider
 
