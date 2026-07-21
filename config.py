@@ -27,10 +27,13 @@ DISCOVERED_MODELS_PATH = os.path.join(
 
 # ── API Keys (all optional; providers with keys get enabled) ──
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
-# GitHub Models (free with a GitHub Personal Access Token). Accepts either a
-# dedicated GITHUB_MODELS_API_KEY or a standard GITHUB_TOKEN / GH_TOKEN.
+# GitHub Models (free with a GitHub Personal Access Token). Accepts a dedicated
+# GH_MODELS_API_KEY / GITHUB_MODELS_API_KEY or a standard GITHUB_TOKEN / GH_TOKEN.
+# Note: repository/Actions secrets may NOT be named with a "GITHUB_" prefix, so
+# the recommended secret name is GH_MODELS_API_KEY.
 GITHUB_MODELS_API_KEY = (
-    os.getenv("GITHUB_MODELS_API_KEY", "")
+    os.getenv("GH_MODELS_API_KEY", "")
+    or os.getenv("GITHUB_MODELS_API_KEY", "")
     or os.getenv("GITHUB_TOKEN", "")
     or os.getenv("GH_TOKEN", "")
 )
